@@ -7,3 +7,9 @@ CITIES = [
     {"name": "Houston", "latitude": 29.7604,"longitude": -95.3698},
     {"name": "Phoenix", "latitude": 33.4484,"longitude": -112.0740}
 ]
+
+params = {
+	"hourly": ["pm10", "pm2_5", "carbon_monoxide", "nitrogen_dioxide", "sulphur_dioxide", "ozone", "us_aqi"],
+    "past_days": 1,
+    "forecast_days": 2
+}
