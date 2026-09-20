@@ -1,6 +1,8 @@
 import openmeteo_requests
 import requests_cache
 from retry_requests import retry
+import pandas as pd
+import numpy as np
 
 #Setup the Open-Meteo API client with cache and retry on error
 cache_session = requests_cache.CachedSession('.cache', expire_after = 3600)
@@ -19,16 +21,36 @@ CITIES = [
     {"name": "Phoenix", "latitude": 33.4484,"longitude": -112.0740}
 ]
 
+HOURLY_VARIABLES = ["pm10", "pm2_5", "carbon_monoxide", "nitrogen_dioxide", "sulphur_dioxide", "ozone", "us_aqi"]
+
 params = {
     "latitude": [city["latitude"] for city in CITIES],
     "longitude": [city["longitude"] for city in CITIES],
-    "hourly": ["pm10", "pm2_5", "carbon_monoxide", "nitrogen_dioxide", "sulphur_dioxide", "ozone", "us_aqi"],
+    "hourly": HOURLY_VARIABLES,
     "past_days": 1,
     "forecast_days": 2
 }
 
 responses = openmeteo.weather_api(url, params = params)
 
-for i, response in enumerate(responses):
-    print(CITIES[i]["name"], response.Latitude(), response.Longitude())
+def build_city_dataframe(city, response, variable_names):
+    hourly = response.Hourly()
+    date_city = {
+        "date": pd.date_range(
+                start=pd.to_datetime(hourly.Time(), unit="s", utc=True),
+                end=pd.to_datetime(hourly.TimeEnd(), unit="s", utc=True),
+                freq=pd.Timedelta(seconds=hourly.Interval()),
+                inclusive="left"),
+        "city": city
+    }
 
+    pollutant_data = {}
+    for i, name in enumerate(variable_names):
+        pollutant_data[name] = hourly.Variables(i).ValuesAsNumpy()
+
+    hourly_data = date_city | pollutant_data
+  
+    return pd.DataFrame(data=hourly_data)
+
+nyc = build_city_dataframe(CITIES[0]["name"],responses[0],HOURLY_VARIABLES)
+print(nyc.head())
