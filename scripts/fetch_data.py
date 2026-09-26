@@ -28,20 +28,23 @@ params = {
     "longitude": [city["longitude"] for city in CITIES],
     "hourly": HOURLY_VARIABLES,
     "past_days": 1,
-    "forecast_days": 2
+    "forecast_days": 2,
+    "timezone": "auto"
 }
 
 responses = openmeteo.weather_api(url, params = params)
 
 def build_city_dataframe(city, response, variable_names):
     hourly = response.Hourly()
+    offset = response.UtcOffsetSeconds()
     date_city = {
         "date": pd.date_range(
-                start=pd.to_datetime(hourly.Time(), unit="s", utc=True),
-                end=pd.to_datetime(hourly.TimeEnd(), unit="s", utc=True),
+                start=pd.to_datetime(hourly.Time(), unit="s"),
+                end=pd.to_datetime(hourly.TimeEnd(), unit="s"),
                 freq=pd.Timedelta(seconds=hourly.Interval()),
                 inclusive="left"),
-        "city": city
+        "city": city,
+        "utc_offset_seconds": offset
     }
 
     pollutant_data = {}
@@ -58,3 +61,4 @@ for city, response in zip(CITIES, responses):
     all_dataframes.append(df)
 
 combined_df = pd.concat(all_dataframes, ignore_index=True)
+print(combined_df["utc_offset_seconds"].unique())
