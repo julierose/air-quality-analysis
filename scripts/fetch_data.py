@@ -52,5 +52,9 @@ def build_city_dataframe(city, response, variable_names):
   
     return pd.DataFrame(data=hourly_data)
 
-nyc = build_city_dataframe(CITIES[0]["name"],responses[0],HOURLY_VARIABLES)
-print(nyc.head())
+all_dataframes = []
+for city, response in zip(CITIES, responses):
+    df = build_city_dataframe(city["name"], response, HOURLY_VARIABLES)
+    all_dataframes.append(df)
+
+combined_df = pd.concat(all_dataframes, ignore_index=True)
