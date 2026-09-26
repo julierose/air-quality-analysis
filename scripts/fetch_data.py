@@ -61,4 +61,17 @@ for city, response in zip(CITIES, responses):
     all_dataframes.append(df)
 
 combined_df = pd.concat(all_dataframes, ignore_index=True)
-print(combined_df["utc_offset_seconds"].unique())
+
+#create column dividing times into 'observed', 'forecast_today', and 'forecast_tomorrow'
+combined_df['current_time_utc'] = pd.Timestamp.now(tz="utc")
+combined_df['utc_offset_timedelta'] = pd.to_timedelta(combined_df['utc_offset_seconds'], unit='s')
+combined_df['date'] = combined_df['date'] + combined_df['utc_offset_timedelta']
+combined_df['current_time_local'] = (combined_df['current_time_utc'] + combined_df['utc_offset_timedelta']).dt.tz_localize(None)
+
+conditions = [combined_df['date'] < combined_df['current_time_local'], 
+              (combined_df['date'].dt.date == combined_df['current_time_local'].dt.date) & (combined_df['date'] >= combined_df['current_time_local']),
+              combined_df['date'].dt.date == combined_df['current_time_local'].dt.date + pd.Timedelta(days=1)]
+label = ['observed','forecast_today','forecast_tomorrow']
+
+combined_df['time_label'] = np.select(conditions, label, default = 'Unmapped')
+
