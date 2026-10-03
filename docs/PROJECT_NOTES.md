@@ -85,9 +85,12 @@ Open-Meteo snaps to its own grid, so returned coordinates differ slightly from t
   - UTC offset captured per city (`utc_offset_seconds`).
   - Local-time shift of the `date` column and the `time_label` column via `np.select`.
   - Validated: 360 rows, 72 per city, labels observed 177 / forecast_today 63 / forecast_tomorrow 120, zero `Unmapped`.
+- Planning (2026-09-30): architecture reviewed, work sized into 30-minute blocks (section 5), decision to go public early, Claude Project created.
+- **A1 audit (2026-10-03):** history and files audited. Only 4 files were ever committed, with no personal paths, no secrets, and no sqlite file. `.gitignore` broadened to `*.sqlite` and `__marimo__/`. Commit email for this repo switched to the GitHub noreply address, and GitHub's "Block command line pushes that expose my email" setting is on.
+- **Decision (2026-10-03):** the 10 commits before 2026-10-03 keep my personal Gmail address. My older public repos already expose the same address, so rewriting this history would not protect it.
 
 ### Not started
-See section 5.
+Everything else in section 5 (A2 onward).
 
 ## 5. Remaining work
 
@@ -97,7 +100,7 @@ See section 5.
 
 Goal: a repo that looks intentional while it is clearly marked as a work in progress.
 
-- **A1: Audit.** Review `git log` and the files for anything personal or sensitive (local paths, emails, notes); git history becomes public too. No API keys are involved (the Open-Meteo free API is keyless). Confirm `.gitignore` covers `.venv/`, the requests_cache sqlite file, and `__marimo__/` if you don't want it tracked.
+- **A1: Audit.** Done (see Status).
 - **A2: LICENSE and `requirements.txt`.** Without a license, default copyright applies and nobody can legally reuse the code. MIT is the common choice for portfolio projects. *Decision needed.* Requirements: marimo, openmeteo-requests, requests-cache, retry-requests, pandas, numpy (pin versions later).
 - **A3-A4: README v0** (two passes):
   - Pass 1: title, one-line description, visible "Work in progress" note, the pipeline in 4 lines (fetch, export, deploy), status checklist, local setup (venv, install requirements, `python -m marimo edit apps/air_quality_analysis.py`).
@@ -148,3 +151,7 @@ License (A2), JSON shape (B1), chart library (C3), keep-alive approach (D6).
 - PowerShell blocked venv activation by execution policy (resolved during setup).
 - Git LF/CRLF warning on Windows is harmless.
 - A push to GitHub from GitHub Desktop once hung on a 504; retrying later worked.
+- **`.gitignore` patterns match the exact file name.** requests_cache creates `.cache.sqlite` (leading dot) from `CachedSession('.cache')`, so `cache.sqlite` didn't match. `*.sqlite` covers it.
+- **Commit email:** each commit permanently carries the author email. Set the noreply address per repo with `git config user.email "<id>+<username>@users.noreply.github.com"`. GitHub Desktop reads the repo-level config. GitHub's push-block setting only checks the *newest* commit, so it doesn't protect older commits.
+- **`git log` opens a pager** that can look like duplicated output in the VS Code terminal. Use `git --no-pager log ...`.
+- **Audit commands that worked:** `git ls-files` (tracked files), `git log --all --name-only --pretty=format: | Sort-Object -Unique` (every file ever committed), `git grep -n -i "term" (git rev-list --all)` (search all history).
