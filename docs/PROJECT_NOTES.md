@@ -88,6 +88,11 @@ Open-Meteo snaps to its own grid, so returned coordinates differ slightly from t
 - Planning (2026-09-30): architecture reviewed, work sized into 30-minute blocks (section 5), decision to go public early, Claude Project created.
 - **A1 audit (2026-10-03):** history and files audited. Only 4 files were ever committed, with no personal paths, no secrets, and no sqlite file. `.gitignore` broadened to `*.sqlite` and `__marimo__/`. Commit email for this repo switched to the GitHub noreply address, and GitHub's "Block command line pushes that expose my email" setting is on.
 - **Decision (2026-10-03):** the 10 commits before 2026-10-03 keep my personal Gmail address. My older public repos already expose the same address, so rewriting this history would not protect it.
+- **A2 (2026-10-10):** MIT `LICENSE` added (code only; the data keeps its own terms). `requirements.txt` hand-written with compatible-release pins (`~=`): marimo `~=0.24.2` (patch updates only, since it is 0.x), the other five `~=` to the minor version I run. `pip install --dry-run -r requirements.txt` confirmed it matches my environment. Local Python is 3.14.7.
+- **A3-A4 (2026-10-10):** README written and pushed: description, work-in-progress note, "How it works", "Data notes", status checklist, local setup (Windows/PowerShell), data sources and attribution (Open-Meteo CC BY 4.0, both CAMS citations, Copernicus notice, Census source), and a License section. These ran well over the estimate because of README iteration and research into the data source and attribution rules.
+
+### Not started
+A5 (go public) and everything else in section 5.
 
 ### Not started
 Everything else in section 5 (A2 onward).
@@ -96,37 +101,32 @@ Everything else in section 5 (A2 onward).
 
 **Pacing:** work in 30-minute blocks. A 60-minute sitting is two blocks, a 90-minute sitting is three. Each block should end at a clean commit. Estimates are padded for a learning pace, so they assume time to read, experiment and break things. Total: about 27-29 blocks (~14 hours).
 
-### Phase A: Public-readiness (~5 blocks; do first)
+**README upkeep:** update the Status checklist whenever a milestone is reached.
 
-Goal: a repo that looks intentional while it is clearly marked as a work in progress.
+### Phase A: Public-readiness (1 block left)
 
-- **A1: Audit.** Done (see Status).
-- **A2: LICENSE and `requirements.txt`.** Without a license, default copyright applies and nobody can legally reuse the code. MIT is the common choice for portfolio projects. *Decision needed.* Requirements: marimo, openmeteo-requests, requests-cache, retry-requests, pandas, numpy (pin versions later).
-- **A3-A4: README v0** (two passes):
-  - Pass 1: title, one-line description, visible "Work in progress" note, the pipeline in 4 lines (fetch, export, deploy), status checklist, local setup (venv, install requirements, `python -m marimo edit apps/air_quality_analysis.py`).
-  - Pass 2: **data attribution** ("Weather data by Open-Meteo.com" with a link, a link to the license CC BY 4.0, a note that the data is processed), the Census citation (section 3), and a license section.
-- **A5: Go public.** Repo description and topics (e.g. `python`, `marimo`, `air-quality`, `open-meteo`, `github-actions`, `data-visualization`); leave Pages off for now. Flip to public, then add the cross-link from the `python_business_automation` README.
+- **A1-A4:** Done (see Status).
+- **A5: Go public (~1 block).** Repo description and topics (e.g. `python`, `marimo`, `air-quality`, `open-meteo`, `github-actions`, `data-visualization`); leave Pages off for now. Flip to public, then add the cross-link from the `python_business_automation` README. After going public, check that the README's clone URL and `docs/PROJECT_NOTES.md` link work for a logged-out visitor.
 
 **Hold off on the scheduled workflow until the pipeline is ready** (see gotchas), or add a workflow with only a manual trigger for now.
-
 ### Phase B: Finish `fetch_data.py` (~4 blocks)
 - **B1:** Choose the JSON shape (records-oriented is the default suggestion) and confirm how timestamps and timedeltas serialize. *Decision needed.*
 - **B2:** Write `public/data/aqi.json`, overwriting each run.
-- **B3:** Turn the exploration into a clean end-to-end script (functions, `main()`, debug prints removed).
+- **B3:** Turn the exploration into a clean end-to-end script (functions, `main()`, debug prints removed). Decide whether to rename the `observed` label. The past hours are also model output, not measurements, so `observed` may mislead readers of the JSON and charts. *Decision needed.*
 - **B4:** Exit non-zero on failure; test by deliberately breaking the fetch.
 - **Keep the helper columns** (`current_time_utc`, `utc_offset_timedelta`, `current_time_local`) in the output. They may be useful in the notebook and are small (decision 2026-09-30).
 
 ### Phase C: Marimo notebook, `apps/air_quality_analysis.py` (~10-11 blocks)
 - **C1:** Load the JSON via `mo.notebook_location() / "public" / "data" / "aqi.json"` and confirm it works locally.
-- **C2:** WASM export smoke test of that minimal notebook, early, since Pyodide compatibility is the main technical risk.
+- **C2:** WASM export smoke test of that minimal notebook, early, since Pyodide compatibility is the main technical risk. When testing the WASM export, also check which pandas version Pyodide bundles, since it may differ from my local 3.0.x.
 - **C3-C4:** First chart (one city, one pollutant). *Decision needed: chart library (Altair, Plotly, other).*
 - **C5-C6:** Multi-city and multi-pollutant comparison with marimo UI controls.
 - **C7:** Observed vs forecast styling (e.g. solid vs dashed).
 - **C8-C9:** A computed "what stood out today" cell (worst city/metric, day-over-day change) so it earns the name *analysis*.
-- **C10-C11:** Layout and polish.
+- **C10-C11:** Layout and polish. The live notebook needs visible credits next to the data: a link to Open-Meteo, and the Copernicus attribution notice (see gotchas).
 
 ### Phase D: Automation and deploy (~6 blocks; timing least predictable)
-- **D1:** Workflow skeleton with a manual trigger only: checkout, Python setup, dependency install.
+- **D1:** Workflow skeleton with a manual trigger only: checkout, Python setup, dependency install. Check that the Actions Python setup step offers 3.14, and match my local version if it does.
 - **D2-D3:** Add the fetch and export steps; expect to debug failed runs.
 - **D4:** Enable Pages (GitHub Actions source) and deploy.
 - **D5:** Add the schedule and push triggers; verify the failure-email setting (Settings → Notifications → Actions).
@@ -155,3 +155,9 @@ License (A2), JSON shape (B1), chart library (C3), keep-alive approach (D6).
 - **Commit email:** each commit permanently carries the author email. Set the noreply address per repo with `git config user.email "<id>+<username>@users.noreply.github.com"`. GitHub Desktop reads the repo-level config. GitHub's push-block setting only checks the *newest* commit, so it doesn't protect older commits.
 - **`git log` opens a pager** that can look like duplicated output in the VS Code terminal. Use `git --no-pager log ...`.
 - **Audit commands that worked:** `git ls-files` (tracked files), `git log --all --name-only --pretty=format: | Sort-Object -Unique` (every file ever committed), `git grep -n -i "term" (git rev-list --all)` (search all history).
+- **The air quality data is modeled, not measured.** Open-Meteo's air quality data comes from CAMS (Copernicus) model forecasts. Locations outside Europe use the CAMS global atmospheric composition forecasts (~40 km, 0.4° grid; the European model only covers Europe). Each city's values describe the whole grid cell, so within-city detail is smoothed. The README says this.
+- **Attribution requirements:** Open-Meteo's data is CC BY 4.0, which requires credit, a link to the license, a note of any changes, and a link to Open-Meteo next to wherever the data is displayed. Open-Meteo's air quality page also asks users to cite the CAMS European ENSEMBLE data (its own wording). Separately, the CAMS global dataset (DOI 10.24381/04a0b097) asks for its own citation plus a Copernicus attribution notice, both in the dialog behind "Citation and attribution" on the dataset page. The license page is spelled `open-meteo.com/en/licence`.
+- **Hourly vs 3-hourly is unresolved.** CAMS lists single-level global fields as hourly, but Open-Meteo's table lists the global data as 3-hourly. I can't tell which one Open-Meteo actually uses, so the README just says "hourly", which is what the API returns.
+- **VS Code's Markdown preview doesn't render task-list checkboxes** (`- [ ]`); GitHub does. Check checkboxes on github.com.
+- **Code blocks inside numbered lists:** flush-left fences split the list into separate lists but still render with the right numbers on GitHub; indenting them by exactly 3 spaces nests them properly (4 spaces makes a code block inside a code block).
+- **`~=` pins:** `~=1.7` means >=1.7 and <2.0, while `~=0.24.2` means >=0.24.2 and <0.25. pip installs the newest version inside the range, so a fresh install can differ from what I tested.
