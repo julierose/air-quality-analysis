@@ -31,7 +31,6 @@ GitHub Action (daily cron + push to main)
 | On fetch failure | Fail the job and keep the last good deploy | Stability over stale-but-deployed |
 | Alerting | GitHub's built-in failure email (baseline) | Add a Slack or auto-issue step later only if needed |
 | Repo | Standalone `air-quality-analysis` (not inside `python_business_automation`) | One Pages site per repo; clearer portfolio story. Cross-link from the other repo's README |
-| Visibility | **Go public early, while under construction** (updated 2026-09-30) | Portfolio visibility; build in the open. Requires the public-readiness steps in section 5, Phase A |
 | Editor | marimo browser editor (`python -m marimo edit ...`) from VS Code terminal; GitHub Desktop for commits | Personal preference |
 | Dependencies | `.venv` locally; consider PEP 723 inline deps in the notebook for WASM export | Only Pyodide-compatible packages work in WASM (pandas, numpy, altair/plotly are fine) |
 
@@ -69,7 +68,7 @@ Open-Meteo snaps to its own grid, so returned coordinates differ slightly from t
 **API parameters**
 - `hourly`: `pm10`, `pm2_5`, `carbon_monoxide`, `nitrogen_dioxide`, `sulphur_dioxide`, `ozone`, `us_aqi` (6 pollutants + overall US AQI)
 - `past_days: 1`, `forecast_days: 2`
-- `timezone: "auto"` (spelled exactly this way; an unknown parameter is silently ignored)
+- `timezone: "auto"` 
 
 **Shape:** 72 hourly rows per city × 5 cities = 360 rows, each labeled `observed`, `forecast_today`, or `forecast_tomorrow`, in **city-local time**.
 
@@ -85,17 +84,13 @@ Open-Meteo snaps to its own grid, so returned coordinates differ slightly from t
   - UTC offset captured per city (`utc_offset_seconds`).
   - Local-time shift of the `date` column and the `time_label` column via `np.select`.
   - Validated: 360 rows, 72 per city, labels observed 177 / forecast_today 63 / forecast_tomorrow 120, zero `Unmapped`.
-- Planning (2026-09-30): architecture reviewed, work sized into 30-minute blocks (section 5), decision to go public early, Claude Project created.
-- **A1 audit (2026-10-03):** history and files audited. Only 4 files were ever committed, with no personal paths, no secrets, and no sqlite file. `.gitignore` broadened to `*.sqlite` and `__marimo__/`. Commit email for this repo switched to the GitHub noreply address, and GitHub's "Block command line pushes that expose my email" setting is on.
-- **Decision (2026-10-03):** the 10 commits before 2026-10-03 keep my personal Gmail address. My older public repos already expose the same address, so rewriting this history would not protect it.
+
+- **A1 audit (2026-10-03):** history and files audited. Only 4 files were ever committed, with no personal paths, no secrets, and no sqlite file. `.gitignore` broadened to `*.sqlite` and `__marimo__/`. 
 - **A2 (2026-10-10):** MIT `LICENSE` added (code only; the data keeps its own terms). `requirements.txt` hand-written with compatible-release pins (`~=`): marimo `~=0.24.2` (patch updates only, since it is 0.x), the other five `~=` to the minor version I run. `pip install --dry-run -r requirements.txt` confirmed it matches my environment. Local Python is 3.14.7.
-- **A3-A4 (2026-10-10):** README written and pushed: description, work-in-progress note, "How it works", "Data notes", status checklist, local setup (Windows/PowerShell), data sources and attribution (Open-Meteo CC BY 4.0, both CAMS citations, Copernicus notice, Census source), and a License section. These ran well over the estimate because of README iteration and research into the data source and attribution rules.
+- **A3-A4 (2026-10-10):** README written and pushed: description, work-in-progress note, "How it works", "Data notes", status checklist, local setup (Windows/PowerShell), data sources and attribution (Open-Meteo CC BY 4.0, both CAMS citations, Copernicus notice, Census source), and a License section. 
 
 ### Not started
 A5 (go public) and everything else in section 5.
-
-### Not started
-Everything else in section 5 (A2 onward).
 
 ## 5. Remaining work
 
@@ -152,7 +147,6 @@ License (A2), JSON shape (B1), chart library (C3), keep-alive approach (D6).
 - Git LF/CRLF warning on Windows is harmless.
 - A push to GitHub from GitHub Desktop once hung on a 504; retrying later worked.
 - **`.gitignore` patterns match the exact file name.** requests_cache creates `.cache.sqlite` (leading dot) from `CachedSession('.cache')`, so `cache.sqlite` didn't match. `*.sqlite` covers it.
-- **Commit email:** each commit permanently carries the author email. Set the noreply address per repo with `git config user.email "<id>+<username>@users.noreply.github.com"`. GitHub Desktop reads the repo-level config. GitHub's push-block setting only checks the *newest* commit, so it doesn't protect older commits.
 - **`git log` opens a pager** that can look like duplicated output in the VS Code terminal. Use `git --no-pager log ...`.
 - **Audit commands that worked:** `git ls-files` (tracked files), `git log --all --name-only --pretty=format: | Sort-Object -Unique` (every file ever committed), `git grep -n -i "term" (git rev-list --all)` (search all history).
 - **The air quality data is modeled, not measured.** Open-Meteo's air quality data comes from CAMS (Copernicus) model forecasts. Locations outside Europe use the CAMS global atmospheric composition forecasts (~40 km, 0.4° grid; the European model only covers Europe). Each city's values describe the whole grid cell, so within-city detail is smoothed. The README says this.
