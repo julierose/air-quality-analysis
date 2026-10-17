@@ -88,6 +88,10 @@ Open-Meteo snaps to its own grid, so returned coordinates differ slightly from t
 - **A1 audit (2026-10-03):** history and files audited. Only 4 files were ever committed, with no personal paths, no secrets, and no sqlite file. `.gitignore` broadened to `*.sqlite` and `__marimo__/`. 
 - **A2 (2026-10-10):** MIT `LICENSE` added (code only; the data keeps its own terms). `requirements.txt` hand-written with compatible-release pins (`~=`): marimo `~=0.24.2` (patch updates only, since it is 0.x), the other five `~=` to the minor version I run. `pip install --dry-run -r requirements.txt` confirmed it matches my environment. Local Python is 3.14.7.
 - **A3-A4 (2026-10-10):** README written and pushed: description, work-in-progress note, "How it works", "Data notes", status checklist, local setup (Windows/PowerShell), data sources and attribution (Open-Meteo CC BY 4.0, both CAMS citations, Copernicus notice, Census source), and a License section. 
+- **A5 partial (2026-10-17):** pre-flight `git status` clean and pushed; notes file reviewed and trimmed before going public; git email settings repaired (see gotchas). Both the global and repo-level `user.email` are now the noreply address, and the "misattributed" warning in GitHub Desktop is gone.
+
+### In progress
+- **A5:** description and topics, flip to public, logged-out check, cross-link.
 
 ### Not started
 A5 (go public) and everything else in section 5.
@@ -155,3 +159,4 @@ License (A2), JSON shape (B1), chart library (C3), keep-alive approach (D6).
 - **VS Code's Markdown preview doesn't render task-list checkboxes** (`- [ ]`); GitHub does. Check checkboxes on github.com.
 - **Code blocks inside numbered lists:** flush-left fences split the list into separate lists but still render with the right numbers on GitHub; indenting them by exactly 3 spaces nests them properly (4 spaces makes a code block inside a code block).
 - **`~=` pins:** `~=1.7` means >=1.7 and <2.0, while `~=0.24.2` means >=0.24.2 and <0.25. pip installs the newest version inside the range, so a fresh install can differ from what I tested.
+- **After any config change, verify the next commit:** `git --no-pager log -1 --format="%an | %ae"`.
