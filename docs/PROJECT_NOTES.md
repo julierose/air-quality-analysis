@@ -88,13 +88,10 @@ Open-Meteo snaps to its own grid, so returned coordinates differ slightly from t
 - **A1 audit (2026-10-03):** history and files audited. Only 4 files were ever committed, with no personal paths, no secrets, and no sqlite file. `.gitignore` broadened to `*.sqlite` and `__marimo__/`. 
 - **A2 (2026-10-10):** MIT `LICENSE` added (code only; the data keeps its own terms). `requirements.txt` hand-written with compatible-release pins (`~=`): marimo `~=0.24.2` (patch updates only, since it is 0.x), the other five `~=` to the minor version I run. `pip install --dry-run -r requirements.txt` confirmed it matches my environment. Local Python is 3.14.7.
 - **A3-A4 (2026-10-10):** README written and pushed: description, work-in-progress note, "How it works", "Data notes", status checklist, local setup (Windows/PowerShell), data sources and attribution (Open-Meteo CC BY 4.0, both CAMS citations, Copernicus notice, Census source), and a License section. 
-- **A5 partial (2026-10-17):** pre-flight `git status` clean and pushed; notes file reviewed and trimmed before going public; git email settings repaired (see gotchas). Both the global and repo-level `user.email` are now the noreply address, and the "misattributed" warning in GitHub Desktop is gone.
-
-### In progress
-- **A5:** description and topics, flip to public, logged-out check, cross-link.
+- **A5 (2026-10-17 to 2026-10-18):** About box (description and topics) added; pre-flight checks done; notes file reviewed and trimmed; repo flipped to public; logged-out check passed (README, status checkboxes, notes link, attribution links, clone URL). Cross-link added to the `python_business_automation` README ("Related project" section, below the Demos table). Git email settings repaired (see gotchas): both the global and repo-level `user.email` are now the noreply address, and the "misattributed" warning in GitHub Desktop is gone.
 
 ### Not started
-A5 (go public) and everything else in section 5.
+Phases B to E
 
 ## 5. Remaining work
 
@@ -102,10 +99,9 @@ A5 (go public) and everything else in section 5.
 
 **README upkeep:** update the Status checklist whenever a milestone is reached.
 
-### Phase A: Public-readiness (1 block left)
+### Phase A: Public-readiness (complete)
 
-- **A1-A4:** Done (see Status).
-- **A5: Go public (~1 block).** Repo description and topics (e.g. `python`, `marimo`, `air-quality`, `open-meteo`, `github-actions`, `data-visualization`); leave Pages off for now. Flip to public, then add the cross-link from the `python_business_automation` README. After going public, check that the README's clone URL and `docs/PROJECT_NOTES.md` link work for a logged-out visitor.
+A1-A5 complete (see Status). Planned at 5 blocks; actual was roughly double, mostly README iteration and attribution research.
 
 **Hold off on the scheduled workflow until the pipeline is ready** (see gotchas), or add a workflow with only a manual trigger for now.
 ### Phase B: Finish `fetch_data.py` (~4 blocks)
@@ -160,3 +156,4 @@ License (A2), JSON shape (B1), chart library (C3), keep-alive approach (D6).
 - **Code blocks inside numbered lists:** flush-left fences split the list into separate lists but still render with the right numbers on GitHub; indenting them by exactly 3 spaces nests them properly (4 spaces makes a code block inside a code block).
 - **`~=` pins:** `~=1.7` means >=1.7 and <2.0, while `~=0.24.2` means >=0.24.2 and <0.25. pip installs the newest version inside the range, so a fresh install can differ from what I tested.
 - **After any config change, verify the next commit:** `git --no-pager log -1 --format="%an | %ae"`.
+- **The Quarto extension can hijack the Markdown preview button/shortcut in VS Code.** Fix: stop the preview with Ctrl+C in the terminal, then right-click the generated files in GitHub Desktop and choose Discard changes.
