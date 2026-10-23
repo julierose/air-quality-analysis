@@ -41,7 +41,7 @@ Repo: https://github.com/julierose/air-quality-analysis
 air-quality-analysis/
 ├── apps/air_quality_analysis.py      # marimo notebook
 ├── scripts/fetch_data.py             # data pull
-├── public/data/aqi.json              # overwritten daily
+├── apps/public/data/aqi.json         # generated daily by fetch_data.py; gitignored
 ├── docs/PROJECT_NOTES.md             # working notes
 ├── .github/workflows/deploy.yml
 ├── .gitignore                        # .venv/, __pycache__/, *.pyc, .DS_Store, requests_cache sqlite file
@@ -89,9 +89,13 @@ Open-Meteo snaps to its own grid, so returned coordinates differ slightly from t
 - **A2 (2026-10-10):** MIT `LICENSE` added (code only; the data keeps its own terms). `requirements.txt` hand-written with compatible-release pins (`~=`): marimo `~=0.24.2` (patch updates only, since it is 0.x), the other five `~=` to the minor version I run. `pip install --dry-run -r requirements.txt` confirmed it matches my environment. Local Python is 3.14.7.
 - **A3-A4 (2026-10-10):** README written and pushed: description, work-in-progress note, "How it works", "Data notes", status checklist, local setup (Windows/PowerShell), data sources and attribution (Open-Meteo CC BY 4.0, both CAMS citations, Copernicus notice, Census source), and a License section. 
 - **A5 (2026-10-17 to 2026-10-18):** About box (description and topics) added; pre-flight checks done; notes file reviewed and trimmed; repo flipped to public; logged-out check passed (README, status checkboxes, notes link, attribution links, clone URL). Cross-link added to the `python_business_automation` README ("Related project" section, below the Demos table). Git email settings repaired (see gotchas): both the global and repo-level `user.email` are now the noreply address, and the "misattributed" warning in GitHub Desktop is gone.
+- **B1 (2026-10-22): JSON shape decided.** Plain records (flat list of row objects), written with `orient="records"`, `date_format="iso"`, `date_unit="s"`, `double_precision=2` (two decimals avoids implying false precision; it only affects the JSON text, not the dataframe). `indent=2` is optional. Helper columns: **drop `utc_offset_timedelta` once used** (`utc_offset_seconds` carries the same info), **keep `current_time_utc` and `current_time_local`**. This amends the 2026-09-30 decision to keep all three.
+- **B2 (2026-10-22): JSON file written.** `fetch_data.py` builds `output_path` from the script's own location (`Path(__file__).resolve().parent.parent / "apps" / "public" / "data" / "aqi.json"`), creates the folder if needed (`output_path.parent.mkdir(parents=True, exist_ok=True)`), and writes the file with `to_json`. Verified: reads back as 360 rows × 13 columns, about 134 KB.
+- **Decision (2026-10-22): the data file is not committed.** `aqi.json` is in `.gitignore`. The GitHub Action regenerates it on every run, and committing it meant daily noise while testing. Consequence: a fresh clone has no data until the fetch script runs.
+- **Path change (2026-10-22):** marimo's docs say WASM exports copy a `public/` folder located in the same directory as the notebook, so the data lives in `apps/public/data/`, not the repo-root `public/` the plan originally had.
 
 ### Not started
-Phases B to E
+B3-B4, Phases C, D, E
 
 ## 5. Remaining work
 
@@ -104,16 +108,13 @@ Phases B to E
 A1-A5 complete (see Status). Planned at 5 blocks; actual was roughly double, mostly README iteration and attribution research.
 
 **Hold off on the scheduled workflow until the pipeline is ready** (see gotchas), or add a workflow with only a manual trigger for now.
-### Phase B: Finish `fetch_data.py` (~4 blocks)
-- **B1:** Choose the JSON shape (records-oriented is the default suggestion) and confirm how timestamps and timedeltas serialize. *Decision needed.*
-- **B2:** Write `public/data/aqi.json`, overwriting each run.
+### Phase B: Finish `fetch_data.py` (B1-B2 done; ~2 blocks left)
 - **B3:** Turn the exploration into a clean end-to-end script (functions, `main()`, debug prints removed). Decide whether to rename the `observed` label. The past hours are also model output, not measurements, so `observed` may mislead readers of the JSON and charts. *Decision needed.*
 - **B4:** Exit non-zero on failure; test by deliberately breaking the fetch.
-- **Keep the helper columns** (`current_time_utc`, `utc_offset_timedelta`, `current_time_local`) in the output. They may be useful in the notebook and are small (decision 2026-09-30).
 
 ### Phase C: Marimo notebook, `apps/air_quality_analysis.py` (~10-11 blocks)
-- **C1:** Load the JSON via `mo.notebook_location() / "public" / "data" / "aqi.json"` and confirm it works locally.
-- **C2:** WASM export smoke test of that minimal notebook, early, since Pyodide compatibility is the main technical risk. When testing the WASM export, also check which pandas version Pyodide bundles, since it may differ from my local 3.0.x.
+- **C1:** After loading, convert dtypes explicitly: `read_json` only auto-converts `date`, so `current_time_utc` and `current_time_local` need `pd.to_datetime`, and whole-number float columns (e.g. `carbon_monoxide`, `ozone`) come back as `int64`, so cast them so the types don't depend on that day's data. The path is `mo.notebook_location() / "public" / "data" / "aqi.json"`.
+- **C2:** WASM export smoke test of that minimal notebook, early, since Pyodide compatibility is the main technical risk. When testing the WASM export, also check which pandas version Pyodide bundles, since it may differ from my local 3.0.x. Also confirm the export copies `apps/public/` and the notebook finds the data in the browser.
 - **C3-C4:** First chart (one city, one pollutant). *Decision needed: chart library (Altair, Plotly, other).*
 - **C5-C6:** Multi-city and multi-pollutant comparison with marimo UI controls.
 - **C7:** Observed vs forecast styling (e.g. solid vs dashed).
@@ -122,16 +123,16 @@ A1-A5 complete (see Status). Planned at 5 blocks; actual was roughly double, mos
 
 ### Phase D: Automation and deploy (~6 blocks; timing least predictable)
 - **D1:** Workflow skeleton with a manual trigger only: checkout, Python setup, dependency install. Check that the Actions Python setup step offers 3.14, and match my local version if it does.
-- **D2-D3:** Add the fetch and export steps; expect to debug failed runs.
+- **D2-D3:** Add the fetch and export steps; expect to debug failed runs. The workflow must run the fetch step before the export step, and the script creates apps/public/data itself because a fresh checkout has no such folder.
 - **D4:** Enable Pages (GitHub Actions source) and deploy.
 - **D5:** Add the schedule and push triggers; verify the failure-email setting (Settings → Notifications → Actions).
 - **D6:** Handle the 60-day inactivity rule (see gotchas). *Decision needed:* keep-alive step vs calendar reminder.
 
 ### Phase E: Polish (~2-3 blocks)
-- Expand the README (architecture diagram, screenshots, live link), update the status checklist, and link the live site from the repo description.
+- Expand the README (architecture diagram, screenshots, live link), update the status checklist, and link the live site from the repo description. Also a README local-setup step to run scripts/fetch_data.py before opening the notebook, since the data file isn’t in the repo.
 
 ### Decision points (mine to make)
-License (A2), JSON shape (B1), chart library (C3), keep-alive approach (D6).
+chart library (C3), keep-alive approach (D6).
 
 ## 6. Gotchas and lessons learned
 
@@ -157,3 +158,11 @@ License (A2), JSON shape (B1), chart library (C3), keep-alive approach (D6).
 - **`~=` pins:** `~=1.7` means >=1.7 and <2.0, while `~=0.24.2` means >=0.24.2 and <0.25. pip installs the newest version inside the range, so a fresh install can differ from what I tested.
 - **After any config change, verify the next commit:** `git --no-pager log -1 --format="%an | %ae"`.
 - **The Quarto extension can hijack the Markdown preview button/shortcut in VS Code.** Fix: stop the preview with Ctrl+C in the terminal, then right-click the generated files in GitHub Desktop and choose Discard changes.
+- **`DataFrame.to_json` defaults to epoch milliseconds**, which silently turns local timestamps into apparent UTC times; pandas 3 deprecates it (`Pandas4Warning`). Always pass `date_format="iso"`. ISO output of tz-naive columns has no suffix (local), tz-aware UTC columns end in `Z`.
+- **Negative timedeltas serialize as e.g. `P-1DT20H0M0S`** (= −4 h). `pd.to_timedelta` parses it, but `read_json` returns it as a string. Prefer an integer like `utc_offset_seconds`.
+- **Open-Meteo returns 32-bit floats**, so values print like `4.5999999046`. `double_precision=2` cleans the JSON text.
+- **`pd.read_json` only auto-converts date-like column names** (`date`); other time columns load as strings. Whole-number float columns load as `int64`.
+- **`df.drop(columns=[...])` returns a new dataframe**: assign it back, or nothing changes (no error).
+- **Build paths from `Path(__file__)`** so they work wherever the script is run from; `.parent` once is `scripts/`, twice is the repo root. `/` joins path pieces on any OS.
+- **marimo WASM exports copy a `public/` folder located next to the notebook** (`apps/public/`), and data paths use `mo.notebook_location()`.
+- **`.gitignore` patterns with a slash in the middle are anchored** to the `.gitignore`'s folder; a bare filename like `aqi.json` matches in any folder. `git check-ignore -v <path>` shows which rule applies.
