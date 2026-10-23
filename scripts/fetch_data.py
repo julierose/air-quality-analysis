@@ -3,6 +3,7 @@ import requests_cache
 from retry_requests import retry
 import pandas as pd
 import numpy as np
+from pathlib import Path
 
 #Setup the Open-Meteo API client with cache and retry on error
 cache_session = requests_cache.CachedSession('.cache', expire_after = 3600)
@@ -71,7 +72,12 @@ combined_df['current_time_local'] = (combined_df['current_time_utc'] + combined_
 conditions = [combined_df['date'] < combined_df['current_time_local'], 
               (combined_df['date'].dt.date == combined_df['current_time_local'].dt.date) & (combined_df['date'] >= combined_df['current_time_local']),
               combined_df['date'].dt.date == combined_df['current_time_local'].dt.date + pd.Timedelta(days=1)]
+
 label = ['observed','forecast_today','forecast_tomorrow']
-
 combined_df['time_label'] = np.select(conditions, label, default = 'Unmapped')
+combined_df = combined_df.drop(columns=["utc_offset_timedelta"]) #drop helper column
 
+output_path = Path(__file__).resolve().parent.parent /"apps" / "public" / "data" / "aqi.json"
+output_path.parent.mkdir(parents=True, exist_ok=True)
+
+combined_df.to_json(output_path, orient="records", indent =2, date_format="iso", date_unit="s", double_precision=2)

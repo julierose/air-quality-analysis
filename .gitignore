@@ -5,3 +5,4 @@ __pycache__/
 cache.sqlite
 *.sqlite
 __marimo__/
+aqi.json
