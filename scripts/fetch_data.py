@@ -97,6 +97,11 @@ def main():
     if unmapped_count >0:
         raise ValueError(f"{unmapped_count} rows could not be labeled (i.e., time_label is 'Unmapped'). Check time logic.")
 
+    expected_rows = 24 * (params["past_days"] + params["forecast_days"]) * len(CITIES)
+    actual_rows = len(combined_df)
+    if expected_rows != actual_rows:
+        raise ValueError(f"Expected {expected_rows} rows, but got {actual_rows}.")
+
     #----------------------------------------------------------------------
     #write file
     #----------------------------------------------------------------------
