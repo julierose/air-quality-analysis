@@ -63,7 +63,7 @@ for city, response in zip(CITIES, responses):
 
 combined_df = pd.concat(all_dataframes, ignore_index=True)
 
-#create column dividing times into 'observed', 'forecast_today', and 'forecast_tomorrow'
+#create column dividing times into 'past', 'forecast_today', and 'forecast_tomorrow'
 combined_df['current_time_utc'] = pd.Timestamp.now(tz="utc")
 combined_df['utc_offset_timedelta'] = pd.to_timedelta(combined_df['utc_offset_seconds'], unit='s')
 combined_df['date'] = combined_df['date'] + combined_df['utc_offset_timedelta']
@@ -73,7 +73,7 @@ conditions = [combined_df['date'] < combined_df['current_time_local'],
               (combined_df['date'].dt.date == combined_df['current_time_local'].dt.date) & (combined_df['date'] >= combined_df['current_time_local']),
               combined_df['date'].dt.date == combined_df['current_time_local'].dt.date + pd.Timedelta(days=1)]
 
-label = ['observed','forecast_today','forecast_tomorrow']
+label = ['past','forecast_today','forecast_tomorrow']
 combined_df['time_label'] = np.select(conditions, label, default = 'Unmapped')
 combined_df = combined_df.drop(columns=["utc_offset_timedelta"]) #drop helper column
 
