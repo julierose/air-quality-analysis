@@ -5,11 +5,6 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 
-#Setup the Open-Meteo API client with cache and retry on error
-cache_session = requests_cache.CachedSession('.cache', expire_after = 3600)
-retry_session = retry(cache_session, retries = 5, backoff_factor = 0.2)
-openmeteo = openmeteo_requests.Client(session = retry_session)
-
 url = "https://air-quality-api.open-meteo.com/v1/air-quality"
 
 #top 5 US cities by population in 2025, per US Census Bureau
@@ -33,8 +28,6 @@ params = {
     "timezone": "auto"
 }
 
-responses = openmeteo.weather_api(url, params = params)
-
 def build_city_dataframe(city, response, variable_names):
     hourly = response.Hourly()
     offset = response.UtcOffsetSeconds()
@@ -56,28 +49,55 @@ def build_city_dataframe(city, response, variable_names):
   
     return pd.DataFrame(data=hourly_data)
 
-all_dataframes = []
-for city, response in zip(CITIES, responses):
-    df = build_city_dataframe(city["name"], response, HOURLY_VARIABLES)
-    all_dataframes.append(df)
+def main():
+    #---------------------------------------------------------------------------------------
+    #fetch data
+    #---------------------------------------------------------------------------------------
+    #Setup the Open-Meteo API client with cache and retry on error
+    cache_session = requests_cache.CachedSession('.cache', expire_after = 3600)
+    retry_session = retry(cache_session, retries = 5, backoff_factor = 0.2)
+    openmeteo = openmeteo_requests.Client(session = retry_session)
 
-combined_df = pd.concat(all_dataframes, ignore_index=True)
+    responses = openmeteo.weather_api(url, params = params)
 
-#create column dividing times into 'past', 'forecast_today', and 'forecast_tomorrow'
-combined_df['current_time_utc'] = pd.Timestamp.now(tz="utc")
-combined_df['utc_offset_timedelta'] = pd.to_timedelta(combined_df['utc_offset_seconds'], unit='s')
-combined_df['date'] = combined_df['date'] + combined_df['utc_offset_timedelta']
-combined_df['current_time_local'] = (combined_df['current_time_utc'] + combined_df['utc_offset_timedelta']).dt.tz_localize(None)
+    #-------------------------------------------------------------------------------
+    #build dataframes
+    #-------------------------------------------------------------------------------
 
-conditions = [combined_df['date'] < combined_df['current_time_local'], 
-              (combined_df['date'].dt.date == combined_df['current_time_local'].dt.date) & (combined_df['date'] >= combined_df['current_time_local']),
-              combined_df['date'].dt.date == combined_df['current_time_local'].dt.date + pd.Timedelta(days=1)]
 
-label = ['past','forecast_today','forecast_tomorrow']
-combined_df['time_label'] = np.select(conditions, label, default = 'Unmapped')
-combined_df = combined_df.drop(columns=["utc_offset_timedelta"]) #drop helper column
+    all_dataframes = []
+    for city, response in zip(CITIES, responses, strict=True):
+        df = build_city_dataframe(city["name"], response, HOURLY_VARIABLES)
+        all_dataframes.append(df)
 
-output_path = Path(__file__).resolve().parent.parent /"apps" / "public" / "data" / "aqi.json"
-output_path.parent.mkdir(parents=True, exist_ok=True)
+    combined_df = pd.concat(all_dataframes, ignore_index=True)
 
-combined_df.to_json(output_path, orient="records", indent =2, date_format="iso", date_unit="s", double_precision=2)
+    #----------------------------------------------------------------------
+    #data transformation and labeling
+    #----------------------------------------------------------------------
+
+    #create column dividing times into 'past', 'forecast_today', and 'forecast_tomorrow'
+    combined_df['current_time_utc'] = pd.Timestamp.now(tz="utc")
+    combined_df['utc_offset_timedelta'] = pd.to_timedelta(combined_df['utc_offset_seconds'], unit='s')
+    combined_df['date'] = combined_df['date'] + combined_df['utc_offset_timedelta']
+    combined_df['current_time_local'] = (combined_df['current_time_utc'] + combined_df['utc_offset_timedelta']).dt.tz_localize(None)
+
+    conditions = [combined_df['date'] < combined_df['current_time_local'], 
+                (combined_df['date'].dt.date == combined_df['current_time_local'].dt.date) & (combined_df['date'] >= combined_df['current_time_local']),
+                combined_df['date'].dt.date == combined_df['current_time_local'].dt.date + pd.Timedelta(days=1)]
+
+    label = ['past','forecast_today','forecast_tomorrow']
+    combined_df['time_label'] = np.select(conditions, label, default = 'Unmapped')
+    combined_df = combined_df.drop(columns=["utc_offset_timedelta"]) #drop helper column
+
+    #----------------------------------------------------------------------
+    #write file
+    #----------------------------------------------------------------------
+
+    output_path = Path(__file__).resolve().parent.parent /"apps" / "public" / "data" / "aqi.json"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    combined_df.to_json(output_path, orient="records", indent =2, date_format="iso", date_unit="s", double_precision=2)
+
+if __name__ == "__main__": 
+    main()
