@@ -31,13 +31,8 @@ def _(mo, pd):
 
     for _pollutant in pollutant_cols:
         air_df[_pollutant] = air_df[_pollutant].astype("float64")
-    
+
     air_df.dtypes.astype(str)
-    return
-
-
-@app.cell
-def _():
     return
 
 
