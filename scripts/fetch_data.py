@@ -102,6 +102,12 @@ def main():
     if expected_rows != actual_rows:
         raise ValueError(f"Expected {expected_rows} rows, but got {actual_rows}.")
 
+    hours_per_city = 24 * (params["past_days"] + params["forecast_days"])
+    city_counts = combined_df.groupby("city").size()
+    bad_cities = city_counts[city_counts != hours_per_city]
+    if len(bad_cities) >0:
+        raise ValueError(f"Unexpected number of rows for the following cities: {bad_cities.to_dict()}")
+
     #----------------------------------------------------------------------
     #write file
     #----------------------------------------------------------------------
