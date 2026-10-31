@@ -108,6 +108,11 @@ def main():
     if len(bad_cities) >0:
         raise ValueError(f"Unexpected number of rows for the following cities: {bad_cities.to_dict()}")
 
+    missing_pollutants = combined_df[HOURLY_VARIABLES].isna().all()
+    empty_columns = missing_pollutants[missing_pollutants]
+    if len(empty_columns) >0:
+        raise ValueError(f"Pollutant data missing for {empty_columns.index.to_list()}")
+
     #----------------------------------------------------------------------
     #write file
     #----------------------------------------------------------------------
