@@ -90,6 +90,13 @@ def main():
     combined_df['time_label'] = np.select(conditions, label, default = 'Unmapped')
     combined_df = combined_df.drop(columns=["utc_offset_timedelta"]) #drop helper column
 
+    #---------------------------------------------------------------------
+    #QA checks
+    #---------------------------------------------------------------------
+    unmapped_count = (combined_df['time_label'] == 'Unmapped').sum()
+    if unmapped_count >0:
+        raise ValueError(f"{unmapped_count} rows could not be labeled (i.e., time_label is 'Unmapped'). Check time logic.")
+
     #----------------------------------------------------------------------
     #write file
     #----------------------------------------------------------------------
