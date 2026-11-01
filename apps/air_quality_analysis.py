@@ -98,31 +98,39 @@ def _(alt, city_df, city_dropdown, mo):
             x = alt.X('date:T',
                       axis = alt.Axis(
                       title='',
-                    titleFontSize = 12,
                       format="%b %d %I:%M %p",
-                      labelAngle=20)
+                      labelAngle=20,
+                      labelFontSize = 12
+                      )
                      ),
             y = alt.Y('pm2_5',
                       axis = alt.Axis(
-                          title = 'Particulate Matter < 2.5 um',
-                      titleFontSize=12)
+                          title = '',
+                      titleFontSize=14,
+                      titleFontWeight="normal",
+                      labelFontSize=12)
                      ),
             strokeDash=alt.StrokeDash(
                 'time_period:N',
                 scale=alt.Scale(
                     domain=['past','forecast'],
-                    range=[[1,0],[5,3]]   #set dash to solid for past, forecast has dash 5, gap 3
+                    range=[[1,0],[5,3]]   #set dash to solid for past, forecast has dash 5, gap 3   
+                ),
+                legend=alt.Legend(
+                    title="Time Period",
+                    titleFontSize=14,
+                    labelFontSize=12
                 )
                 ),
             tooltip = [
-                alt.Tooltip('date:T', format="%b %d, %I:%M %p", title='Date'),
-                alt.Tooltip('pm2_5:Q', title = 'PM < 2.5 um'),
-                alt.Tooltip('time_label', title = 'Time Category')
+                alt.Tooltip('date:T', format="%b %d, %I:%M %p", title='Date & Time'),
+                alt.Tooltip('pm2_5:Q', title = 'PM2.5')
             ]
             ).properties(
             title = alt.TitleParams(
-                text = 'Test Chart',
-                subtitle = f'{city_dropdown.value} Particulate Matter < 2.5 micrometers',
+                text = f'{city_dropdown.value} PM2.5 concentration',
+                subtitle = ["Particulate matter with a diameter of 2.5 microns or smaller.",
+                            "Measured in micrograms per cubic meter"],
                 anchor = 'middle',
                 fontSize = 14,
                 subtitleFontSize=12,
