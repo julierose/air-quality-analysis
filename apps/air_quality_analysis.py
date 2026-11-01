@@ -1,7 +1,7 @@
 import marimo
 
 __generated_with = "0.24.2"
-app = marimo.App()
+app = marimo.App(width="full")
 
 
 @app.cell
@@ -14,8 +14,9 @@ def _():
 @app.cell
 def _():
     import pandas as pd
+    import altair as alt
 
-    return (pd,)
+    return alt, pd
 
 
 @app.cell
@@ -31,8 +32,45 @@ def _(mo, pd):
 
     for _pollutant in pollutant_cols:
         air_df[_pollutant] = air_df[_pollutant].astype("float64")
+    return (air_df,)
 
-    air_df.dtypes.astype(str)
+
+@app.cell
+def _(air_df):
+    city_df = air_df[air_df['city'] == 'New York']
+    city_df
+    return (city_df,)
+
+
+@app.cell
+def _(alt, city_df):
+    alt.Chart(city_df).mark_line().encode(
+        x = alt.X('date:T',
+                  axis = alt.Axis(
+                  title='',
+                titleFontSize = 12,
+                  format="%b %d %I:%M %p",
+                  labelAngle=20)
+                 ),
+        y = alt.Y('pm2_5',
+                  axis = alt.Axis(
+                      title = 'Particulate Matter < 2.5 um',
+                  titleFontSize=12)
+                 ),
+        tooltip = [
+            alt.Tooltip('date:T', format="%b %d, %I:%M %p", title='Date'),
+            alt.Tooltip('pm2_5:Q', title = 'PM < 2.5 um'),
+            alt.Tooltip('time_label', title = 'Time Category')
+        ]
+        ).properties(
+        title = alt.TitleParams(
+            text = 'Test Chart',
+            subtitle = 'New York City Particulate Matter < 2.5 micrometers',
+            anchor = 'middle',
+            fontSize = 14,
+            subtitleFontSize=12,
+            subtitleFontStyle='italic')
+        )
     return
 
 
