@@ -14,19 +14,25 @@ def _():
 @app.cell
 def _():
     import pandas as pd
+    import numpy as np
     import altair as alt
 
-    return alt, pd
+    return alt, np, pd
 
 
 @app.cell
-def _(mo, pd):
+def _(mo, np, pd):
     #data ingest and transformation
     aqi_path = str(mo.notebook_location()/"public"/"data"/"aqi.json")
     air_df = pd.read_json(aqi_path)
 
     air_df['current_time_utc'] = pd.to_datetime(air_df['current_time_utc'])
     air_df['current_time_local'] = pd.to_datetime(air_df['current_time_local'])
+    _period_conditions = [air_df['time_label'] == 'past',
+                 air_df['time_label'].isin(['forecast_today','forecast_tomorrow'])
+                 ]
+    _period_labels = ['past','forecast']
+    air_df['time_period'] = np.select(_period_conditions, _period_labels, default = 'Unmapped')
 
     pollutant_cols = ["pm10", "pm2_5", "carbon_monoxide", "nitrogen_dioxide", "sulphur_dioxide", "ozone", "us_aqi"]
 
@@ -44,7 +50,7 @@ def _(air_df):
 
 @app.cell
 def _(alt, city_df):
-    alt.Chart(city_df).mark_line().encode(
+    alt.Chart(city_df).mark_line(point=True).encode(
         x = alt.X('date:T',
                   axis = alt.Axis(
                   title='',
@@ -57,6 +63,13 @@ def _(alt, city_df):
                       title = 'Particulate Matter < 2.5 um',
                   titleFontSize=12)
                  ),
+        strokeDash=alt.StrokeDash(
+            'time_period:N',
+            scale=alt.Scale(
+                domain=['past','forecast'],
+                range=[[1,0],[5,3]]   #set dash to solid for past, forecast has dash 5, gap 3
+            )
+            ),
         tooltip = [
             alt.Tooltip('date:T', format="%b %d, %I:%M %p", title='Date'),
             alt.Tooltip('pm2_5:Q', title = 'PM < 2.5 um'),
