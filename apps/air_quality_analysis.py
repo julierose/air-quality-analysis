@@ -52,14 +52,20 @@ def _(air_df, mo):
         label = 'Select City: '
     )
 
+    city_multiselect = mo.ui.multiselect(
+        options = cities,
+        value = cities, #default to having all cities selected
+        label = "Select One or More Cities: "
+    )
+
     pollutant_dict = {
-        "PM10":"pm10",
-        "PM2.5":"pm2_5",
-        "Carbon Monoxide":"carbon_monoxide",
-        "Nitrogen Dioxide":"nitrogen_dioxide",
-        "Sulphur Dioxide":"sulphur_dioxide",
-        "Ozone":"ozone",
-        "US AQI":"us_aqi"
+        "PM10 (μg/m³)":"pm10",
+        "PM2.5 (μg/m³)":"pm2_5",
+        "Carbon Monoxide (μg/m³)":"carbon_monoxide",
+        "Nitrogen Dioxide (μg/m³)":"nitrogen_dioxide",
+        "Sulphur Dioxide (μg/m³)":"sulphur_dioxide",
+        "Ozone (μg/m³)":"ozone",
+        "US AQI (0-500 index)":"us_aqi"
     }
 
     pollutant_dropdown = mo.ui.dropdown(
@@ -67,20 +73,14 @@ def _(air_df, mo):
         value = list(pollutant_dict)[0], #grab first key in dict
         label = 'Select Pollutant: '
     )
-    return (city_dropdown,)
+    return city_dropdown, pollutant_dropdown
 
 
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    #View Pollutants by City
+    #Specify City/Pollutant combinations
     """)
-    return
-
-
-@app.cell
-def _(city_dropdown):
-    city_dropdown
     return
 
 
@@ -92,7 +92,7 @@ def _(air_df, city_dropdown):
 
 
 @app.cell
-def _(alt, city_df, city_dropdown, mo):
+def _(alt, city_df, city_dropdown, mo, pollutant_dropdown):
     test_chart = (
         alt.Chart(city_df).mark_line(point=True).encode(
             x = alt.X('date:T',
@@ -103,7 +103,7 @@ def _(alt, city_df, city_dropdown, mo):
                       labelFontSize = 12
                       )
                      ),
-            y = alt.Y('pm2_5',
+            y = alt.Y(pollutant_dropdown.value,
                       axis = alt.Axis(
                           title = '',
                       titleFontSize=14,
@@ -124,13 +124,13 @@ def _(alt, city_df, city_dropdown, mo):
                 ),
             tooltip = [
                 alt.Tooltip('date:T', format="%b %d, %I:%M %p", title='Date & Time'),
-                alt.Tooltip('pm2_5:Q', title = 'PM2.5')
+                alt.Tooltip(pollutant_dropdown.value, title = f'{pollutant_dropdown.selected_key}')
             ]
             ).properties(
             title = alt.TitleParams(
-                text = f'{city_dropdown.value} PM2.5 concentration',
-                subtitle = ["Particulate matter with a diameter of 2.5 microns or smaller.",
-                            "Measured in micrograms per cubic meter"],
+                text = f'{city_dropdown.value}: {pollutant_dropdown.selected_key}',
+                # subtitle = ["Particulate matter with a diameter of 2.5 microns or smaller.",
+                #             "Measured in micrograms per cubic meter"],
                 anchor = 'middle',
                 fontSize = 14,
                 subtitleFontSize=12,
@@ -139,7 +139,35 @@ def _(alt, city_df, city_dropdown, mo):
             height = 400
             )
     )
-    mo.vstack([city_dropdown,test_chart])
+    mo.vstack([city_dropdown,pollutant_dropdown,test_chart])
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    #Comparing cities by pollutant
+    """)
+    return
+
+
+@app.cell
+def _():
+    #create multiselect city dropdown, reuse single pollutant dropdown
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(r"""
+    #City pollution profile
+    """)
+    return
+
+
+@app.cell
+def _():
+    #create set of charts with all pollutants and allow single select city dropdown
     return
 
 
