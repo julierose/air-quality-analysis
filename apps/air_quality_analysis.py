@@ -73,27 +73,33 @@ def _(air_df, mo):
         value = list(pollutant_dict)[0], #grab first key in dict
         label = 'Select Pollutant: '
     )
-    return city_dropdown, pollutant_dropdown
+    return city_dropdown, city_multiselect, pollutant_dropdown
 
 
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    #Specify City/Pollutant combinations
+    #View individual City/Pollutant combinations
     """)
     return
 
 
 @app.cell
-def _(air_df, city_dropdown):
+def _(air_df, city_dropdown, city_multiselect):
     city_df = air_df[air_df['city'] == city_dropdown.value]
+
+    if city_multiselect.value:
+        multicity_df = air_df[air_df['city'].isin(city_multiselect.value)]
+    else: #if no cities are selected, create an empty dataframe so the plot doesn't crash
+        multicity_df = air_df.iloc[0:0]
+
     city_df
-    return (city_df,)
+    return city_df, multicity_df
 
 
 @app.cell
-def _(alt, city_df, city_dropdown, mo, pollutant_dropdown):
-    test_chart = (
+def _(alt, city_df, city_dropdown, city_multiselect, mo, pollutant_dropdown):
+    chart = (
         alt.Chart(city_df).mark_line(point=True).encode(
             x = alt.X('date:T',
                       axis = alt.Axis(
@@ -139,21 +145,75 @@ def _(alt, city_df, city_dropdown, mo, pollutant_dropdown):
             height = 400
             )
     )
-    mo.vstack([city_dropdown,pollutant_dropdown,test_chart])
+    mo.vstack([city_multiselect,pollutant_dropdown,chart])
     return
 
 
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    #
     #Comparing cities by pollutant
     """)
     return
 
 
 @app.cell
-def _():
+def _(alt, city_multiselect, mo, multicity_df, pollutant_dropdown):
     #create multiselect city dropdown, reuse single pollutant dropdown
+    chart2 = (
+        alt.Chart(multicity_df).mark_line(point=True).encode(
+            x = alt.X('date:T',
+                      axis = alt.Axis(
+                      title='',
+                      format="%b %d %I:%M %p",
+                      labelAngle=20,
+                      labelFontSize = 12
+                      )
+                     ),
+            y = alt.Y(pollutant_dropdown.value,
+                      axis = alt.Axis(
+                          title = '',
+                      titleFontSize=14,
+                      titleFontWeight="normal",
+                      labelFontSize=12)
+                     ),
+            strokeDash=alt.StrokeDash(
+                'time_period:N',
+                scale=alt.Scale(
+                    domain=['past','forecast'],
+                    range=[[1,0],[5,3]]   #set dash to solid for past, forecast has dash 5, gap 3   
+                ),
+                legend=None
+                ),
+            color = alt.Color(
+                'city:N',
+                title = "City",
+                legend=alt.Legend(
+                    title="City",
+                    titleFontSize=14,
+                    labelFontSize=12
+                )
+            ),
+            tooltip = [
+                alt.Tooltip('date:T', format="%b %d, %I:%M %p", title='Date & Time'),
+                alt.Tooltip('city:N', title = "City"),
+                alt.Tooltip(pollutant_dropdown.value, title = f'{pollutant_dropdown.selected_key}')
+            
+            ])
+            .properties(
+            title = alt.TitleParams(
+                text = f'Comparing {pollutant_dropdown.selected_key} across cities',
+                subtitle = ["Local times displayed. Dashed lines represent forecast data"],
+                anchor = 'middle',
+                fontSize = 14,
+                subtitleFontSize=12,
+                subtitleFontStyle='italic'),
+            width = 800,
+            height = 400
+            )
+    )
+    mo.vstack([city_multiselect,pollutant_dropdown,chart2])
     return
 
 
