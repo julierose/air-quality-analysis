@@ -199,7 +199,7 @@ def _(alt, city_multiselect, mo, multicity_df, pollutant_dropdown):
                 alt.Tooltip('date:T', format="%b %d, %I:%M %p", title='Date & Time'),
                 alt.Tooltip('city:N', title = "City"),
                 alt.Tooltip(pollutant_dropdown.value, title = f'{pollutant_dropdown.selected_key}')
-            
+        
             ])
             .properties(
             title = alt.TitleParams(
@@ -226,8 +226,367 @@ def _(mo):
 
 
 @app.cell
-def _():
+def _(alt, city_df, city_dropdown, mo):
     #create set of charts with all pollutants and allow single select city dropdown
+    chart_pm2_5 = (
+        alt.Chart(city_df).mark_line(point=True).encode(
+            x = alt.X('date:T',
+                      axis = alt.Axis(
+                      title='',
+                      format="%b %d %I:%M %p",
+                      labelAngle=20,
+                      labelFontSize = 12
+                      )
+                     ),
+            y = alt.Y('pm2_5',
+                      axis = alt.Axis(
+                          title = '',
+                      titleFontSize=14,
+                      titleFontWeight="normal",
+                      labelFontSize=12)
+                     ),
+            strokeDash=alt.StrokeDash(
+                'time_period:N',
+                scale=alt.Scale(
+                    domain=['past','forecast'],
+                    range=[[1,0],[5,3]]   #set dash to solid for past, forecast has dash 5, gap 3   
+                ),
+                legend=alt.Legend(
+                    title="Time Period",
+                    titleFontSize=14,
+                    labelFontSize=12
+                )
+                ),
+            tooltip = [
+                alt.Tooltip('date:T', format="%b %d, %I:%M %p", title='Date & Time'),
+                alt.Tooltip('pm2_5:Q', title = 'PM2.5')
+            ]
+            ).properties(
+            title = alt.TitleParams(
+                text = f'{city_dropdown.value}: PM2.5',
+                # subtitle = ["Particulate matter with a diameter of 2.5 microns or smaller.",
+                #             "Measured in micrograms per cubic meter"],
+                anchor = 'middle',
+                fontSize = 14,
+                subtitleFontSize=12,
+                subtitleFontStyle='italic'),
+            width = 400,
+            height = 200
+            )
+    )
+    mo.vstack([city_dropdown,chart_pm2_5])
+    return
+
+
+@app.cell
+def _(alt, city_df, city_dropdown, mo):
+    chart_pm10 = (
+        alt.Chart(city_df).mark_line(point=True).encode(
+            x = alt.X('date:T',
+                      axis = alt.Axis(
+                      title='',
+                      format="%b %d %I:%M %p",
+                      labelAngle=20,
+                      labelFontSize = 12
+                      )
+                     ),
+            y = alt.Y('pm10',
+                      axis = alt.Axis(
+                          title = '',
+                      titleFontSize=14,
+                      titleFontWeight="normal",
+                      labelFontSize=12)
+                     ),
+            strokeDash=alt.StrokeDash(
+                'time_period:N',
+                scale=alt.Scale(
+                    domain=['past','forecast'],
+                    range=[[1,0],[5,3]]   #set dash to solid for past, forecast has dash 5, gap 3   
+                ),
+                legend=alt.Legend(
+                    title="Time Period",
+                    titleFontSize=14,
+                    labelFontSize=12
+                )
+                ),
+            tooltip = [
+                alt.Tooltip('date:T', format="%b %d, %I:%M %p", title='Date & Time'),
+                alt.Tooltip('pm10:Q', title = 'PM10')
+            ]
+            ).properties(
+            title = alt.TitleParams(
+                text = f'{city_dropdown.value}: PM10',
+                # subtitle = ["Particulate matter with a diameter of 2.5 microns or smaller.",
+                #             "Measured in micrograms per cubic meter"],
+                anchor = 'middle',
+                fontSize = 14,
+                subtitleFontSize=12,
+                subtitleFontStyle='italic'),
+            width = 400,
+            height = 200
+            )
+    )
+    mo.vstack([city_dropdown,chart_pm10])
+    return
+
+
+@app.cell
+def _(alt, city_df, city_dropdown, mo):
+    chart_CO = (
+        alt.Chart(city_df).mark_line(point=True).encode(
+            x = alt.X('date:T',
+                      axis = alt.Axis(
+                      title='',
+                      format="%b %d %I:%M %p",
+                      labelAngle=20,
+                      labelFontSize = 12
+                      )
+                     ),
+            y = alt.Y('carbon_monoxide',
+                      axis = alt.Axis(
+                          title = '',
+                      titleFontSize=14,
+                      titleFontWeight="normal",
+                      labelFontSize=12)
+                     ),
+            strokeDash=alt.StrokeDash(
+                'time_period:N',
+                scale=alt.Scale(
+                    domain=['past','forecast'],
+                    range=[[1,0],[5,3]]   #set dash to solid for past, forecast has dash 5, gap 3   
+                ),
+                legend=alt.Legend(
+                    title="Time Period",
+                    titleFontSize=14,
+                    labelFontSize=12
+                )
+                ),
+            tooltip = [
+                alt.Tooltip('date:T', format="%b %d, %I:%M %p", title='Date & Time'),
+                alt.Tooltip('carbon_monoxide:Q', title = 'Carbon Monoxide')
+            ]
+            ).properties(
+            title = alt.TitleParams(
+                text = f'{city_dropdown.value}: Carbon Monoxide',
+                # subtitle = ["Particulate matter with a diameter of 2.5 microns or smaller.",
+                #             "Measured in micrograms per cubic meter"],
+                anchor = 'middle',
+                fontSize = 14,
+                subtitleFontSize=12,
+                subtitleFontStyle='italic'),
+            width = 400,
+            height = 200
+            )
+    )
+    mo.vstack([city_dropdown,chart_CO])
+    return
+
+
+@app.cell
+def _(alt, city_df, city_dropdown, mo):
+    chart_NO2 = (
+        alt.Chart(city_df).mark_line(point=True).encode(
+            x = alt.X('date:T',
+                      axis = alt.Axis(
+                      title='',
+                      format="%b %d %I:%M %p",
+                      labelAngle=20,
+                      labelFontSize = 12
+                      )
+                     ),
+            y = alt.Y('nitrogen_dioxide',
+                      axis = alt.Axis(
+                          title = '',
+                      titleFontSize=14,
+                      titleFontWeight="normal",
+                      labelFontSize=12)
+                     ),
+            strokeDash=alt.StrokeDash(
+                'time_period:N',
+                scale=alt.Scale(
+                    domain=['past','forecast'],
+                    range=[[1,0],[5,3]]   #set dash to solid for past, forecast has dash 5, gap 3   
+                ),
+                legend=alt.Legend(
+                    title="Time Period",
+                    titleFontSize=14,
+                    labelFontSize=12
+                )
+                ),
+            tooltip = [
+                alt.Tooltip('date:T', format="%b %d, %I:%M %p", title='Date & Time'),
+                alt.Tooltip('nitrogen_dioxide:Q', title = 'Nitrogen Dioxide')
+            ]
+            ).properties(
+            title = alt.TitleParams(
+                text = f'{city_dropdown.value}: Nitrogen Dioxide',
+                # subtitle = ["Particulate matter with a diameter of 2.5 microns or smaller.",
+                #             "Measured in micrograms per cubic meter"],
+                anchor = 'middle',
+                fontSize = 14,
+                subtitleFontSize=12,
+                subtitleFontStyle='italic'),
+            width = 400,
+            height = 200
+            )
+    )
+    mo.vstack([city_dropdown,chart_NO2])
+    return
+
+
+@app.cell
+def _(alt, city_df, city_dropdown, mo):
+    chart_SO2 = (
+        alt.Chart(city_df).mark_line(point=True).encode(
+            x = alt.X('date:T',
+                      axis = alt.Axis(
+                      title='',
+                      format="%b %d %I:%M %p",
+                      labelAngle=20,
+                      labelFontSize = 12
+                      )
+                     ),
+            y = alt.Y('sulphur_dioxide',
+                      axis = alt.Axis(
+                          title = '',
+                      titleFontSize=14,
+                      titleFontWeight="normal",
+                      labelFontSize=12)
+                     ),
+            strokeDash=alt.StrokeDash(
+                'time_period:N',
+                scale=alt.Scale(
+                    domain=['past','forecast'],
+                    range=[[1,0],[5,3]]   #set dash to solid for past, forecast has dash 5, gap 3   
+                ),
+                legend=alt.Legend(
+                    title="Time Period",
+                    titleFontSize=14,
+                    labelFontSize=12
+                )
+                ),
+            tooltip = [
+                alt.Tooltip('date:T', format="%b %d, %I:%M %p", title='Date & Time'),
+                alt.Tooltip('sulphur_dioxide:Q', title = 'Sulphur Dioxide')
+            ]
+            ).properties(
+            title = alt.TitleParams(
+                text = f'{city_dropdown.value}: Sulphur Dioxide',
+                # subtitle = ["Particulate matter with a diameter of 2.5 microns or smaller.",
+                #             "Measured in micrograms per cubic meter"],
+                anchor = 'middle',
+                fontSize = 14,
+                subtitleFontSize=12,
+                subtitleFontStyle='italic'),
+            width = 400,
+            height = 200
+            )
+    )
+    mo.vstack([city_dropdown,chart_SO2])
+    return
+
+
+@app.cell
+def _(alt, city_df, city_dropdown, mo):
+    chart_ozone = (
+        alt.Chart(city_df).mark_line(point=True).encode(
+            x = alt.X('date:T',
+                      axis = alt.Axis(
+                      title='',
+                      format="%b %d %I:%M %p",
+                      labelAngle=20,
+                      labelFontSize = 12
+                      )
+                     ),
+            y = alt.Y('ozone',
+                      axis = alt.Axis(
+                          title = '',
+                      titleFontSize=14,
+                      titleFontWeight="normal",
+                      labelFontSize=12)
+                     ),
+            strokeDash=alt.StrokeDash(
+                'time_period:N',
+                scale=alt.Scale(
+                    domain=['past','forecast'],
+                    range=[[1,0],[5,3]]   #set dash to solid for past, forecast has dash 5, gap 3   
+                ),
+                legend=alt.Legend(
+                    title="Time Period",
+                    titleFontSize=14,
+                    labelFontSize=12
+                )
+                ),
+            tooltip = [
+                alt.Tooltip('date:T', format="%b %d, %I:%M %p", title='Date & Time'),
+                alt.Tooltip('ozone:Q', title = 'Ozone')
+            ]
+            ).properties(
+            title = alt.TitleParams(
+                text = f'{city_dropdown.value}: Ozone',
+                # subtitle = ["Particulate matter with a diameter of 2.5 microns or smaller.",
+                #             "Measured in micrograms per cubic meter"],
+                anchor = 'middle',
+                fontSize = 14,
+                subtitleFontSize=12,
+                subtitleFontStyle='italic'),
+            width = 400,
+            height = 200
+            )
+    )
+    mo.vstack([city_dropdown,chart_ozone])
+    return
+
+
+@app.cell
+def _(alt, city_df, city_dropdown, mo):
+    chart_usaqi = (
+        alt.Chart(city_df).mark_line(point=True).encode(
+            x = alt.X('date:T',
+                      axis = alt.Axis(
+                      title='',
+                      format="%b %d %I:%M %p",
+                      labelAngle=20,
+                      labelFontSize = 12
+                      )
+                     ),
+            y = alt.Y('us_aqi',
+                      axis = alt.Axis(
+                          title = '',
+                      titleFontSize=14,
+                      titleFontWeight="normal",
+                      labelFontSize=12)
+                     ),
+            strokeDash=alt.StrokeDash(
+                'time_period:N',
+                scale=alt.Scale(
+                    domain=['past','forecast'],
+                    range=[[1,0],[5,3]]   #set dash to solid for past, forecast has dash 5, gap 3   
+                ),
+                legend=alt.Legend(
+                    title="Time Period",
+                    titleFontSize=14,
+                    labelFontSize=12
+                )
+                ),
+            tooltip = [
+                alt.Tooltip('date:T', format="%b %d, %I:%M %p", title='Date & Time'),
+                alt.Tooltip('us_aqi:Q', title = 'US AQI')
+            ]
+            ).properties(
+            title = alt.TitleParams(
+                text = f'{city_dropdown.value}: US AQI',
+                # subtitle = ["Particulate matter with a diameter of 2.5 microns or smaller.",
+                #             "Measured in micrograms per cubic meter"],
+                anchor = 'middle',
+                fontSize = 14,
+                subtitleFontSize=12,
+                subtitleFontStyle='italic'),
+            width = 400,
+            height = 200
+            )
+    )
+    mo.vstack([city_dropdown,chart_usaqi])
     return
 
 
