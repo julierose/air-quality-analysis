@@ -28,11 +28,16 @@ def _(mo, np, pd):
 
     air_df['current_time_utc'] = pd.to_datetime(air_df['current_time_utc'])
     air_df['current_time_local'] = pd.to_datetime(air_df['current_time_local'])
+
+    #create past/forecast data label
     _period_conditions = [air_df['time_label'] == 'past',
                  air_df['time_label'].isin(['forecast_today','forecast_tomorrow'])
                  ]
     _period_labels = ['past','forecast']
     air_df['time_period'] = np.select(_period_conditions, _period_labels, default = 'Unmapped')
+
+    #create day labels to use later in AQI averages for a KPI card
+    air_df['local_day'] = air_df['date'].dt.normalize()
 
     pollutant_cols = ["pm10", "pm2_5", "carbon_monoxide", "nitrogen_dioxide", "sulphur_dioxide", "ozone", "us_aqi"]
 
@@ -95,6 +100,80 @@ def _(air_df, city_dropdown, city_multiselect):
 
     city_df
     return city_df, multicity_df
+
+
+@app.cell
+def _(city_dropdown):
+    city_dropdown
+    return
+
+
+@app.cell
+def _(city_df, pd):
+    #create USAQI KPI
+
+    #local dates come from the "now" at the time of the data pull, not the viewer's clock
+    _today = city_df['current_time_local'].iloc[0].normalize()
+    _yesterday = _today - pd.Timedelta(days=1)
+
+    _today_raw = city_df.loc[city_df['local_day'] == _today, 'us_aqi'].mean()
+    _yesterday_raw = city_df.loc[city_df['local_day'] == _yesterday, 'us_aqi'].mean()
+
+    #safeguard for missing values
+    def _round_or_none(value):
+        if pd.isna(value):
+            return None
+        return round(value)
+    
+    us_aqi_mean_today = _round_or_none(_today_raw)
+    us_aqi_mean_yesterday = _round_or_none(_yesterday_raw)
+
+    #run comparison only when both values exist
+    if us_aqi_mean_today is None or us_aqi_mean_yesterday is None:
+        kpi_direction = None
+    elif us_aqi_mean_today > us_aqi_mean_yesterday:
+        kpi_direction = 'increase'
+    elif us_aqi_mean_today < us_aqi_mean_yesterday:
+        kpi_direction = 'decrease'
+    else: kpi_direction = None #equal values, no arrow
+
+    #AQI category
+    if us_aqi_mean_today < 0:
+        aqi_category = ''
+    elif (us_aqi_mean_today >=0) and (us_aqi_mean_today <= 50):
+        aqi_category = 'Good'
+    elif (us_aqi_mean_today > 50) and (us_aqi_mean_today <= 100):
+        aqi_category = 'Moderate'
+    elif (us_aqi_mean_today > 100) and (us_aqi_mean_today <= 150):
+        aqi_category = 'Unhealthy for Sensitive Groups'
+    elif (us_aqi_mean_today > 150) and (us_aqi_mean_today <= 200):
+        aqi_category = 'Unhealthy'
+    elif (us_aqi_mean_today > 200) and (us_aqi_mean_today <= 300):
+        aqi_category = 'Very Unhealthy'
+    else: aqi_category = 'Hazardous'
+    return (
+        aqi_category,
+        kpi_direction,
+        us_aqi_mean_today,
+        us_aqi_mean_yesterday,
+    )
+
+
+@app.cell
+def _(
+    aqi_category,
+    kpi_direction,
+    mo,
+    us_aqi_mean_today,
+    us_aqi_mean_yesterday,
+):
+    mo.stat(value = us_aqi_mean_today if us_aqi_mean_today is not None else "n/a",
+            label = "Today's Average US AQI",
+            caption=f"{aqi_category} | yesterday's average: {us_aqi_mean_yesterday}",
+           direction = kpi_direction,
+           target_direction = 'decrease',
+           bordered=True)
+    return
 
 
 @app.cell
@@ -199,7 +278,7 @@ def _(alt, city_multiselect, mo, multicity_df, pollutant_dropdown):
                 alt.Tooltip('date:T', format="%b %d, %I:%M %p", title='Date & Time'),
                 alt.Tooltip('city:N', title = "City"),
                 alt.Tooltip(pollutant_dropdown.value, title = f'{pollutant_dropdown.selected_key}')
-        
+    
             ])
             .properties(
             title = alt.TitleParams(
