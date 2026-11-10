@@ -1,7 +1,7 @@
 # air-quality-analysis: Project Notes
 
 > Living document. Update at the end of each working session, commit it to the repo, and re-upload it to the Claude Project knowledge.
-> **Last updated:** 2026-09-30; code status as of 2026-09-26
+> **Last updated:** 2026-11-10; code status as of the last working session
 
 ## 1. Goal
 
@@ -33,6 +33,11 @@ GitHub Action (daily cron + push to main)
 | Repo | Standalone `air-quality-analysis` (not inside `python_business_automation`) | One Pages site per repo; clearer portfolio story. Cross-link from the other repo's README |
 | Editor | marimo browser editor (`python -m marimo edit ...`) from VS Code terminal; GitHub Desktop for commits | Personal preference |
 | Dependencies | `.venv` locally; consider PEP 723 inline deps in the notebook for WASM export | Only Pyodide-compatible packages work in WASM (pandas, numpy, altair/plotly are fine) |
+| Chart library | Altair 6.x (`altair~=6.3`) | Tooltips by default, a grammar close to ggplot/Tableau, loads in the WASM export (tested) |
+| Data format | JSON records, not Parquet | Needs no extra browser dependency (pyarrow) and is human-readable; costs a few type fixes in the notebook |
+| Export | `python -m marimo export html-wasm apps/air_quality_analysis.py -o site --mode run` | Directory export, not `--single-file` (which skips `public/`); must be served over HTTP |
+| Browser packages | Unpinned; accepted risk | A third-party doc says marimo strips PEP 723 version pins in WASM (unverified); revisit only if something breaks |
+| DST | Accept as known limitation | See section 3 |
 
 Repo: https://github.com/julierose/air-quality-analysis
 
@@ -72,6 +77,14 @@ Open-Meteo snaps to its own grid, so returned coordinates differ slightly from t
 
 **Shape:** 72 hourly rows per city × 5 cities = 360 rows, each labeled `observed`, `forecast_today`, or `forecast_tomorrow`, in **city-local time**.
 
+**Labels:** `past`, `forecast_today`, `forecast_tomorrow` (renamed from `observed`, since past hours are also model output).
+
+**Derived in the notebook:** `local_day` (the local date) and `time_period` (`past` or `forecast`).
+
+**Units:** μg/m³ for all pollutants; `us_aqi` is a 0-500 index, the maximum of the six pollutant sub-indices (PM uses a rolling 24 h average, CO 8 h).
+
+**DST caveat:** Open-Meteo fixes the UTC offset at request time for the whole response. Windows that span a clock change have local times off by one hour for part of the window, for DST-observing cities (not Phoenix). Decision: accept and document; revisit before launch.
+
 ## 4. Status
 
 ### Done
@@ -93,9 +106,19 @@ Open-Meteo snaps to its own grid, so returned coordinates differ slightly from t
 - **B2 (2026-10-22): JSON file written.** `fetch_data.py` builds `output_path` from the script's own location (`Path(__file__).resolve().parent.parent / "apps" / "public" / "data" / "aqi.json"`), creates the folder if needed (`output_path.parent.mkdir(parents=True, exist_ok=True)`), and writes the file with `to_json`. Verified: reads back as 360 rows × 13 columns, about 134 KB.
 - **Decision (2026-10-22): the data file is not committed.** `aqi.json` is in `.gitignore`. The GitHub Action regenerates it on every run, and committing it meant daily noise while testing. Consequence: a fresh clone has no data until the fetch script runs.
 - **Path change (2026-10-22):** marimo's docs say WASM exports copy a `public/` folder located in the same directory as the notebook, so the data lives in `apps/public/data/`, not the repo-root `public/` the plan originally had.
+- **B3:** `fetch_data.py` restructured: processing lives in `main()` with the `__main__` guard, `zip(..., strict=True)`, section comments, `observed` renamed to `past`. A separate labeling function was skipped (fixed schedule; testing by deliberate breakage instead).
+- **B4:** four checks run after labeling and before the write, each raising `ValueError` with a descriptive message: no `Unmapped` labels; total row count (computed from `params` and `CITIES`); equal row count per city; no pollutant column entirely NaN. Each was tested by deliberately breaking the data: exit code 1 and `aqi.json` unchanged. A bad URL also fails loudly. The 1-hour request cache was left as is.
+- **C1:** notebook loads `aqi.json` via `mo.notebook_location()`, parses the two `current_time_*` columns, casts pollutants to float64, uses `precise_float=True`, and adds `local_day` and `time_period`.
+- **C2:** WASM smoke test passed. `marimo check --select MW` is clean, the export copies `apps/public/`, the data loads in the browser, and Altair installs and renders. Browser pandas is 3.0.2 (local 3.0.6). `site/` is gitignored.
+- **C3-C6:** Altair chosen. Controls (city dropdown, pollutant dropdown built from a display-name dictionary with units, city multiselect), a single-city chart, and a multi-city comparison chart with past solid and forecast dashed.
+- **Decisions:** JSON over Parquet; unpinned browser packages accepted; DST caveat accepted for now.
+
+### In progress
+- **City snapshot section:** the KPI card (today's average AQI vs yesterday, category caption, direction arrow) is built; confirm it on all five cities. Six small pollutant charts are drafted; the 3×2 layout is being tested. Still to do: set the notebook width, add a title and a "dashed = forecast" caption.
+- **Table section:** city-filtered `mo.ui.table` with renamed headers and `page_size=24`; the date `format_mapping` and the attribution caption are drafted but not placed.
 
 ### Not started
-B3-B4, Phases C, D, E
+The rest of Phases C, D, and E.
 
 ## 5. Remaining work
 
@@ -108,31 +131,32 @@ B3-B4, Phases C, D, E
 A1-A5 complete (see Status). Planned at 5 blocks; actual was roughly double, mostly README iteration and attribution research.
 
 **Hold off on the scheduled workflow until the pipeline is ready** (see gotchas), or add a workflow with only a manual trigger for now.
-### Phase B: Finish `fetch_data.py` (B1-B2 done; ~2 blocks left)
-- **B3:** Turn the exploration into a clean end-to-end script (functions, `main()`, debug prints removed). Decide whether to rename the `observed` label. The past hours are also model output, not measurements, so `observed` may mislead readers of the JSON and charts. *Decision needed.*
-- **B4:** Exit non-zero on failure; test by deliberately breaking the fetch.
+### Phase B: Finish `fetch_data.py` (done)
 
-### Phase C: Marimo notebook, `apps/air_quality_analysis.py` (~10-11 blocks)
-- **C1:** After loading, convert dtypes explicitly: `read_json` only auto-converts `date`, so `current_time_utc` and `current_time_local` need `pd.to_datetime`, and whole-number float columns (e.g. `carbon_monoxide`, `ozone`) come back as `int64`, so cast them so the types don't depend on that day's data. The path is `mo.notebook_location() / "public" / "data" / "aqi.json"`.
-- **C2:** WASM export smoke test of that minimal notebook, early, since Pyodide compatibility is the main technical risk. When testing the WASM export, also check which pandas version Pyodide bundles, since it may differ from my local 3.0.x. Also confirm the export copies `apps/public/` and the notebook finds the data in the browser.
-- **C3-C4:** First chart (one city, one pollutant). *Decision needed: chart library (Altair, Plotly, other).*
-- **C5-C6:** Multi-city and multi-pollutant comparison with marimo UI controls.
-- **C7:** Observed vs forecast styling (e.g. solid vs dashed).
-- **C8-C9:** A computed "what stood out today" cell (worst city/metric, day-over-day change) so it earns the name *analysis*.
-- **C10-C11:** Layout and polish. The live notebook needs visible credits next to the data: a link to Open-Meteo, and the Copernicus attribution notice (see gotchas).
+### Phase C: Marimo notebook (~7-9 blocks left)
+- **Snapshot layout:** notebook width (`medium` or `full`), title, small-multiples styling, dash caption, KPI check across five cities (~2 blocks).
+- **Table section:** place it (accordion or tabs), apply the date format, attribution caption beneath, check downloads in the browser (~1-2 blocks).
+- **Attribution and footer:** a short Open-Meteo credit beside each data display; full CAMS citations once in a footer (~1 block).
+- **"What stood out today":** a cross-city cell (worst city/pollutant, day-over-day change) (~2 blocks).
+- **Polish:** remove the temporary dtypes line, dynamic title text, optional AQI category shading (~1-2 blocks).
 
-### Phase D: Automation and deploy (~6 blocks; timing least predictable)
-- **D1:** Workflow skeleton with a manual trigger only: checkout, Python setup, dependency install. Check that the Actions Python setup step offers 3.14, and match my local version if it does.
-- **D2-D3:** Add the fetch and export steps; expect to debug failed runs. The workflow must run the fetch step before the export step, and the script creates apps/public/data itself because a fresh checkout has no such folder.
-- **D4:** Enable Pages (GitHub Actions source) and deploy.
-- **D5:** Add the schedule and push triggers; verify the failure-email setting (Settings → Notifications → Actions).
-- **D6:** Handle the 60-day inactivity rule (see gotchas). *Decision needed:* keep-alive step vs calendar reminder.
+
+### Phase D: Automation and deploy (~6 blocks; least predictable)
+- D1: workflow skeleton, manual trigger only. Check that the Python setup offers 3.14.
+- D2-D3: add the fetch step before the export step; the script creates `apps/public/data` itself.
+- D4: enable Pages and upload `site/`.
+- D5: add schedule and push triggers. Pick a run time that isn't near local midnight in any of the five cities (around 10:00 UTC), and verify the failure-email setting.
+- D6: handle the 60-day inactivity rule. *Decision needed:* keep-alive step vs reminder.
+
 
 ### Phase E: Polish (~2-3 blocks)
-- Expand the README (architecture diagram, screenshots, live link), update the status checklist, and link the live site from the repo description. Also a README local-setup step to run scripts/fetch_data.py before opening the notebook, since the data file isn’t in the repo.
+- README: tick the JSON output box now; update the status as milestones land; add the rounding to the list of changes; add the local-setup step "run `scripts/fetch_data.py` before opening the notebook"; screenshots, live link.
+- Update the "Related project" text in the `python_business_automation` README once the site is live.
+- Confirm `altair~=6.3` is in `requirements.txt`.
+
 
 ### Decision points (mine to make)
-chart library (C3), keep-alive approach (D6).
+keep-alive approach (D6).
 
 ## 6. Gotchas and lessons learned
 
@@ -166,3 +190,14 @@ chart library (C3), keep-alive approach (D6).
 - **Build paths from `Path(__file__)`** so they work wherever the script is run from; `.parent` once is `scripts/`, twice is the repo root. `/` joins path pieces on any OS.
 - **marimo WASM exports copy a `public/` folder located next to the notebook** (`apps/public/`), and data paths use `mo.notebook_location()`.
 - **`.gitignore` patterns with a slash in the middle are anchored** to the `.gitignore`'s folder; a bare filename like `aqi.json` matches in any folder. `git check-ignore -v <path>` shows which rule applies.
+- **`$LASTEXITCODE`** (PowerShell) holds the last program's exit code; 0 is success. The 1-hour request cache can mask a failed fetch, so to test failure, change the request (e.g. break the URL).
+- **`round(NaN)` raises `ValueError`:** check `pd.isna(...)` before rounding.
+- **`pd.read_json` parses floats approximately by default** (`1.68` can come back as `1.6800000000000002`). Use `precise_float=True`.
+- **`groupby(...).size()` omits groups with no rows**, so a missing city doesn't show as 0.
+- **`df2 = df1` does not copy;** both names point at the same object. Use `.copy()`.
+- **`mo.ui.dropdown` with dict options:** `.value` is the dict value (the column), `.selected_key` is the display name, and the `value=` argument takes the key.
+- **`mo.ui.table`:** no header-rename option (rename columns in a display dataframe); `format_mapping` formats display only, so sorting still uses real values; key it by the displayed column name.
+- **`mo.stat`:** `direction=None` for no arrow; `target_direction` says which direction is good (`"decrease"` for AQI).
+- **Layout:** default page width is `compact`; use `mo.vstack(..., align="center")` to center; `hstack` defaults to `space-between`.
+- **Altair:** `legend=` goes inside the encoding it describes; `legend=None` hides it (commenting out `alt.Legend` does not); dash patterns are assigned alphabetically, so set `domain` and `range` explicitly; `point=True` breaks dash legend symbols; the default tooltip date format drops the hour; `width` is the plot area, not the whole chart; `configure_*` goes on the outermost chart.
+- **WASM export:** serve it over HTTP (`python -m http.server --directory site --bind 127.0.0.1`); the browser loads Python from a CDN, so viewers need internet access; check pandas/platform in the browser with `f"pandas {pd.__version__} on {sys.platform}"` (shows `emscripten`).
