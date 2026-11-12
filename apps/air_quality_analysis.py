@@ -124,19 +124,21 @@ def _(city_df, pd):
     else: kpi_direction = None #equal values, no arrow
 
     #AQI category
-    if us_aqi_mean_today < 0:
-        aqi_category = ''
-    elif (us_aqi_mean_today >=0) and (us_aqi_mean_today <= 50):
-        aqi_category = 'Good'
-    elif (us_aqi_mean_today > 50) and (us_aqi_mean_today <= 100):
-        aqi_category = 'Moderate'
-    elif (us_aqi_mean_today > 100) and (us_aqi_mean_today <= 150):
-        aqi_category = 'Unhealthy for Sensitive Groups'
-    elif (us_aqi_mean_today > 150) and (us_aqi_mean_today <= 200):
-        aqi_category = 'Unhealthy'
-    elif (us_aqi_mean_today > 200) and (us_aqi_mean_today <= 300):
-        aqi_category = 'Very Unhealthy'
-    else: aqi_category = 'Hazardous'
+    _aqi_categories = [
+            (50, "Good"),
+            (100, "Moderate"),
+            (150, "Unhealthy for Sensitive Groups"),
+            (200, "Unhealthy"),
+            (300, "Very Unhealthy"),
+            (float("inf"), "Hazardous"),   #everything above 300
+        ]
+
+    aqi_category = 'n/a' #default fallback in case today's average is missing
+    if us_aqi_mean_today is not None:
+        for _upper_bound, _label in _aqi_categories:
+            if us_aqi_mean_today <= _upper_bound:
+                aqi_category = _label
+                break
     return (
         aqi_category,
         kpi_direction,
@@ -153,9 +155,11 @@ def _(
     us_aqi_mean_today,
     us_aqi_mean_yesterday,
 ):
+    _yesterday_text = us_aqi_mean_yesterday if us_aqi_mean_yesterday is not None else "n/a"
+
     aqi_card = mo.stat(value = us_aqi_mean_today if us_aqi_mean_today is not None else "n/a",
                     label = "Today's Average US AQI",
-                    caption=f"{aqi_category} | yesterday's average: {us_aqi_mean_yesterday}",
+                    caption=f"{aqi_category} | yesterday's average: {_yesterday_text}",
                     direction = kpi_direction,
                     target_direction = 'decrease',
                     bordered=True)
@@ -163,11 +167,30 @@ def _(
     return (aqi_card,)
 
 
+@app.cell
+def _(air_df, mo):
+    #overall page header
+    _refreshed = air_df['current_time_utc'].iloc[0].strftime("%b %d, %Y, %H:%M UTC")
+
+    mo.md(
+        f"""
+        # Air Quality in the Five Largest US Cities
+
+        Hourly air quality estimates for New York, Los Angeles, Chicago, Houston, and Phoenix, covering yesterday, today, and tomorrow in each city's local time. Compare cities, explore one city's pollution provile, or browse the data table.
+
+        *Data last refreshed: {_refreshed}*
+
+        Air quality data is from [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0), based on Copernicus Atmosphere Monitoring Service model estimates, not ground-monitor readings. Full attribution is at the bottom of the page.
+        """
+    )
+    return
+
+
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
     ------------------------------------
-    #Comparing cities by pollutant
+    # Comparing cities by pollutant
     """)
     return
 
@@ -270,11 +293,11 @@ def _(alt, city_df):
                 ),
             tooltip = [
                 alt.Tooltip('date:T', format="%b %d, %I:%M %p", title='Date & Time'),
-                alt.Tooltip('pm2_5:Q', title = 'PM2.5')
+                alt.Tooltip('pm2_5:Q', title = 'PM2.5 (μg/m³)')
             ]
             ).properties(
             title = alt.TitleParams(
-                text = 'PM2.5',
+                text = 'PM2.5 (μg/m³)',
                 # subtitle = ["Particulate matter with a diameter of 2.5 microns or smaller.",
                 #             "Measured in micrograms per cubic meter"],
                 anchor = 'middle',
@@ -318,11 +341,11 @@ def _(alt, city_df):
                 ),
             tooltip = [
                 alt.Tooltip('date:T', format="%b %d, %I:%M %p", title='Date & Time'),
-                alt.Tooltip('pm10:Q', title = 'PM10')
+                alt.Tooltip('pm10:Q', title = 'PM10 (μg/m³)')
             ]
             ).properties(
             title = alt.TitleParams(
-                text = 'PM10',
+                text = 'PM10 (μg/m³)',
                 # subtitle = ["Particulate matter with a diameter of 2.5 microns or smaller.",
                 #             "Measured in micrograms per cubic meter"],
                 anchor = 'middle',
@@ -366,11 +389,11 @@ def _(alt, city_df):
                 ),
             tooltip = [
                 alt.Tooltip('date:T', format="%b %d, %I:%M %p", title='Date & Time'),
-                alt.Tooltip('carbon_monoxide:Q', title = 'Carbon Monoxide')
+                alt.Tooltip('carbon_monoxide:Q', title = 'Carbon Monoxide (μg/m³)')
             ]
             ).properties(
             title = alt.TitleParams(
-                text = 'Carbon Monoxide',
+                text = 'Carbon Monoxide (μg/m³)',
                 # subtitle = ["Particulate matter with a diameter of 2.5 microns or smaller.",
                 #             "Measured in micrograms per cubic meter"],
                 anchor = 'middle',
@@ -414,11 +437,11 @@ def _(alt, city_df):
                 ),
             tooltip = [
                 alt.Tooltip('date:T', format="%b %d, %I:%M %p", title='Date & Time'),
-                alt.Tooltip('nitrogen_dioxide:Q', title = 'Nitrogen Dioxide')
+                alt.Tooltip('nitrogen_dioxide:Q', title = 'Nitrogen Dioxide (μg/m³)')
             ]
             ).properties(
             title = alt.TitleParams(
-                text = 'Nitrogen Dioxide',
+                text = 'Nitrogen Dioxide (μg/m³)',
                 # subtitle = ["Particulate matter with a diameter of 2.5 microns or smaller.",
                 #             "Measured in micrograms per cubic meter"],
                 anchor = 'middle',
@@ -462,11 +485,11 @@ def _(alt, city_df):
                 ),
             tooltip = [
                 alt.Tooltip('date:T', format="%b %d, %I:%M %p", title='Date & Time'),
-                alt.Tooltip('sulphur_dioxide:Q', title = 'Sulphur Dioxide')
+                alt.Tooltip('sulphur_dioxide:Q', title = 'Sulphur Dioxide (μg/m³)')
             ]
             ).properties(
             title = alt.TitleParams(
-                text = 'Sulphur Dioxide',
+                text = 'Sulphur Dioxide (μg/m³)',
                 # subtitle = ["Particulate matter with a diameter of 2.5 microns or smaller.",
                 #             "Measured in micrograms per cubic meter"],
                 anchor = 'middle',
@@ -510,11 +533,11 @@ def _(alt, city_df):
                 ),
             tooltip = [
                 alt.Tooltip('date:T', format="%b %d, %I:%M %p", title='Date & Time'),
-                alt.Tooltip('ozone:Q', title = 'Ozone')
+                alt.Tooltip('ozone:Q', title = 'Ozone (μg/m³)')
             ]
             ).properties(
             title = alt.TitleParams(
-                text = 'Ozone',
+                text = 'Ozone (μg/m³)',
                 # subtitle = ["Particulate matter with a diameter of 2.5 microns or smaller.",
                 #             "Measured in micrograms per cubic meter"],
                 anchor = 'middle',
@@ -543,7 +566,7 @@ def _(
 ):
     mo.vstack(
         [mo.md(f"## Air Quality Snapshot: {city_dropdown.value}").style({"text-align": "center"}),
-         mo.md("Local times displayed. Dashed lines represent forecast data").style({"text-align": "center","font_size":"0.9em","font-style":"italic"}),
+         mo.md("Local times displayed. Dashed lines represent forecast data").style({"text-align": "center","font-size":"0.9em","font-style":"italic"}),
         mo.hstack([city_dropdown,aqi_card], justify="center"),
         mo.hstack([chart_pm2_5,chart_pm10,chart_CO]),
         mo.hstack([chart_NO2,chart_SO2,chart_ozone])]
@@ -585,11 +608,7 @@ def _(alt, city_df, city_dropdown, mo, pollutant_dropdown):
                     domain=['past','forecast'],
                     range=[[1,0],[5,3]]   #set dash to solid for past, forecast has dash 5, gap 3   
                 ),
-                legend=alt.Legend(
-                    title="Time Period",
-                    titleFontSize=14,
-                    labelFontSize=12
-                )
+                legend=None
                 ),
             tooltip = [
                 alt.Tooltip('date:T', format="%b %d, %I:%M %p", title='Date & Time'),
@@ -598,8 +617,7 @@ def _(alt, city_df, city_dropdown, mo, pollutant_dropdown):
             ).properties(
             title = alt.TitleParams(
                 text = f'{city_dropdown.value}: {pollutant_dropdown.selected_key}',
-                # subtitle = ["Particulate matter with a diameter of 2.5 microns or smaller.",
-                #             "Measured in micrograms per cubic meter"],
+                subtitle = ["Dashed lines represent forecast data"],
                 anchor = 'middle',
                 fontSize = 14,
                 subtitleFontSize=12,
