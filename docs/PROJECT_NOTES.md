@@ -1,7 +1,7 @@
 # air-quality-analysis: Project Notes
 
 > Living document. Update at the end of each working session, commit it to the repo, and re-upload it to the Claude Project knowledge.
-> **Last updated:** 2026-11-10; code status as of the last working session
+> **Last updated:** 2026-11-11; code status as of the last working session
 
 ## 1. Goal
 
@@ -112,13 +112,19 @@ Open-Meteo snaps to its own grid, so returned coordinates differ slightly from t
 - **C2:** WASM smoke test passed. `marimo check --select MW` is clean, the export copies `apps/public/`, the data loads in the browser, and Altair installs and renders. Browser pandas is 3.0.2 (local 3.0.6). `site/` is gitignored.
 - **C3-C6:** Altair chosen. Controls (city dropdown, pollutant dropdown built from a display-name dictionary with units, city multiselect), a single-city chart, and a multi-city comparison chart with past solid and forecast dashed.
 - **Decisions:** JSON over Parquet; unpinned browser packages accepted; DST caveat accepted for now.
+- **C complete (notebook).** Finished since the last update:
+  - Snapshot section: KPI card (today's average AQI vs yesterday, category caption, direction arrow, `n/a` fallbacks when a value is missing), six small pollutant charts in two fixed rows of three, title and dashed-line caption.
+  - Table section: city-filtered `mo.ui.table` with renamed headers (units included), `page_size=24`, date `format_mapping`, full attribution block beneath it.
+  - Page header: title, one-sentence description, "Data refreshed" time read from `current_time_utc`, and a short Open-Meteo/CAMS credit. Full attribution stays at the bottom.
+  - Fixes from review: invalid CSS key in a `.style()` call, a crash in the AQI category code when the average is missing, and a meaningless dash legend on the in-depth chart.
+- **Decisions (C):**
+  - "What stood out today" analysis is dropped; the KPI card and charts cover it.
+  - Two fixed rows of three charts, no `wrap=True`; check on a phone after deployment.
+  - Two-tier attribution: a short credit at the top, the full block by the table.
+  - The same dropdowns shown in two sections were tested and are not a problem.
 
 ### In progress
-- **City snapshot section:** the KPI card (today's average AQI vs yesterday, category caption, direction arrow) is built; confirm it on all five cities. Six small pollutant charts are drafted; the 3×2 layout is being tested. Still to do: set the notebook width, add a title and a "dashed = forecast" caption.
-- **Table section:** city-filtered `mo.ui.table` with renamed headers and `page_size=24`; the date `format_mapping` and the attribution caption are drafted but not placed.
-
-### Not started
-The rest of Phases C, D, and E.
+- Nothing started. Next up: a final export and browser check of the whole notebook, then **D1**.
 
 ## 5. Remaining work
 
@@ -133,30 +139,30 @@ A1-A5 complete (see Status). Planned at 5 blocks; actual was roughly double, mos
 **Hold off on the scheduled workflow until the pipeline is ready** (see gotchas), or add a workflow with only a manual trigger for now.
 ### Phase B: Finish `fetch_data.py` (done)
 
-### Phase C: Marimo notebook (~7-9 blocks left)
-- **Snapshot layout:** notebook width (`medium` or `full`), title, small-multiples styling, dash caption, KPI check across five cities (~2 blocks).
-- **Table section:** place it (accordion or tabs), apply the date format, attribution caption beneath, check downloads in the browser (~1-2 blocks).
-- **Attribution and footer:** a short Open-Meteo credit beside each data display; full CAMS citations once in a footer (~1 block).
-- **"What stood out today":** a cross-city cell (worst city/pollutant, day-over-day change) (~2 blocks).
-- **Polish:** remove the temporary dtypes line, dynamic title text, optional AQI category shading (~1-2 blocks).
+### Phase C: Marimo notebook (done)
+Planned at ~7-9 blocks left; the "what stood out today" cell was dropped.
 
+### Before Phase D: final check (~1 block)
+Export again and look at the whole site in the browser: sorting the date column across a month boundary, the table's download button (does it export formatted or raw values?), the "Data refreshed" time against `aqi.json`, load time, and the KPI card for all five cities.
 
 ### Phase D: Automation and deploy (~6 blocks; least predictable)
-- D1: workflow skeleton, manual trigger only. Check that the Python setup offers 3.14.
+- D1: workflow skeleton, manual trigger only. Check the current GitHub docs for Pages deployment, and that the Python setup offers 3.14.
 - D2-D3: add the fetch step before the export step; the script creates `apps/public/data` itself.
 - D4: enable Pages and upload `site/`.
 - D5: add schedule and push triggers. Pick a run time that isn't near local midnight in any of the five cities (around 10:00 UTC), and verify the failure-email setting.
 - D6: handle the 60-day inactivity rule. *Decision needed:* keep-alive step vs reminder.
 
-
 ### Phase E: Polish (~2-3 blocks)
-- README: tick the JSON output box now; update the status as milestones land; add the rounding to the list of changes; add the local-setup step "run `scripts/fetch_data.py` before opening the notebook"; screenshots, live link.
+- README: tick the JSON output and Notebook boxes now; replace the "notebook has no data to load" sentence; add the local-setup step "run `scripts/fetch_data.py` before opening the notebook"; add the rounding to the list of changes; update the status as milestones land; screenshots and live link.
+- Add the live site link to the repo's About box (Website field).
 - Update the "Related project" text in the `python_business_automation` README once the site is live.
+- Check the live site on a phone (the layout uses fixed-width charts).
 - Confirm `altair~=6.3` is in `requirements.txt`.
 
+### Open decisions
+DST handling before launch (accept, or convert with the IANA zone); keep-alive approach (D6).
 
-### Decision points (mine to make)
-keep-alive approach (D6).
+Estimate: ~9-10 blocks (~5 hours) remaining, padded for the pace so far.
 
 ## 6. Gotchas and lessons learned
 
@@ -201,3 +207,6 @@ keep-alive approach (D6).
 - **Layout:** default page width is `compact`; use `mo.vstack(..., align="center")` to center; `hstack` defaults to `space-between`.
 - **Altair:** `legend=` goes inside the encoding it describes; `legend=None` hides it (commenting out `alt.Legend` does not); dash patterns are assigned alphabetically, so set `domain` and `range` explicitly; `point=True` breaks dash legend symbols; the default tooltip date format drops the hour; `width` is the plot area, not the whole chart; `configure_*` goes on the outermost chart.
 - **WASM export:** serve it over HTTP (`python -m http.server --directory site --bind 127.0.0.1`); the browser loads Python from a CDN, so viewers need internet access; check pandas/platform in the browser with `f"pandas {pd.__version__} on {sys.platform}"` (shows `emscripten`).
+- **Comparing `None` to a number raises `TypeError`:** handle the missing case first, before any `<` or `>`.
+- **Attribution:** show a short Open-Meteo credit near the top of the page, not only in a footer or beside the table. The full citations can stay in one place.
+- **Per-row `hstack(wrap=True)` wraps each row independently**, giving uneven rows (2, 1, 2, 1). For responsive layouts, put all charts in one wrapping `hstack`.
