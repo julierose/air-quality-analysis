@@ -29,4 +29,22 @@ jobs:
               run: python -m marimo export html-wasm apps/air_quality_analysis.py -o site --mode run
             - name: Verification export
               run: ls -l site/public/data
+            - name: Upload
+              uses: actions/upload-pages-artifact@v4
+              with: 
+                path: site
+    deploy:
+        needs: build
+        runs-on: ubuntu-latest
+        permissions:
+          contents: read
+          pages: write
+          id-token: write
+        environment: 
+          name: github-pages
+          url: ${{ steps.deployment.outputs.page_url }}
+        steps:
+          - id: deployment
+            uses: actions/deploy-pages@v4
+          
 
