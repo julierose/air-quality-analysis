@@ -1,0 +1,21 @@
+name: "Build and deploy"
+on: 
+    workflow_dispatch
+permissions: 
+    contents: read
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Check out the repo
+              uses: actions/checkout@v5
+            - name: Set up Python
+              uses: actions/setup-python@v6
+              with: 
+                python-version: '3.14'
+            - name: Install dependencies
+              run: pip install -r requirements.txt
+            - name: Check step
+              run: 
+                python --version
+                pip list
