@@ -21,6 +21,10 @@ jobs:
                 pip list
             - name: Fetch data
               run: python scripts/fetch_data.py
-            - name: Verification
+            - name: Verification fetch
               run: ls -l apps/public/data
+            - name: Export notebook to WASM
+              run: python -m marimo export html-wasm apps/air_quality_analysis.py -o site --mode run
+            - name: Verification export
+              run: ls -l site/public/data
 
