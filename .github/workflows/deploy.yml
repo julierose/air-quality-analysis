@@ -15,7 +15,12 @@ jobs:
                 python-version: '3.14'
             - name: Install dependencies
               run: pip install -r requirements.txt
-            - name: Check step
-              run: 
+            - name: Show versions
+              run: |
                 python --version
                 pip list
+            - name: Fetch data
+              run: python scripts/fetch_data.py
+            - name: Verification
+              run: ls -l apps/public/data
+
