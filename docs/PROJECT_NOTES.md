@@ -1,8 +1,7 @@
 # air-quality-analysis: Project Notes
 
 > Living document. Update at the end of each working session, commit it to the repo, and re-upload it to the Claude Project knowledge.
-> **Last updated:** 2026-11-11; code status as of the last working session
-
+> **Last updated:** 2026-11-14; code status as of the last working session
 ## 1. Goal
 
 A portfolio demo of an **automated analysis pipeline**: a marimo notebook exported to WASM and hosted on GitHub Pages, fed by a daily GitHub Action that pulls fresh data from the Open-Meteo Air Quality API.
@@ -36,8 +35,9 @@ GitHub Action (daily cron + push to main)
 | Chart library | Altair 6.x (`altair~=6.3`) | Tooltips by default, a grammar close to ggplot/Tableau, loads in the WASM export (tested) |
 | Data format | JSON records, not Parquet | Needs no extra browser dependency (pyarrow) and is human-readable; costs a few type fixes in the notebook |
 | Export | `python -m marimo export html-wasm apps/air_quality_analysis.py -o site --mode run` | Directory export, not `--single-file` (which skips `public/`); must be served over HTTP |
-| Browser packages | Unpinned; accepted risk | A third-party doc says marimo strips PEP 723 version pins in WASM (unverified); revisit only if something breaks |
-| DST | Accept as known limitation | See section 3 |
+| Browser packages | Come from Pyodide's bundle (pandas 3.0.2, altair, numpy); not pinned by us | Versions follow the Pyodide release that marimo ships, so they change only when marimo is upgraded (pinned `~=0.24.2`); the browser console showed packages loading from the "default channel" (not confirmed in marimo's docs) |
+| Pages deploy | `upload-pages-artifact@v4` + `deploy-pages@v4`, build and deploy as two jobs | Per GitHub's current docs; source set to GitHub Actions in repo Settings → Pages |
+| Export on the runner | `pip install uv` step before the export | marimo's `html-wasm` export needs `uv` on the PATH (see gotchas) |
 
 Repo: https://github.com/julierose/air-quality-analysis
 
@@ -123,8 +123,12 @@ Open-Meteo snaps to its own grid, so returned coordinates differ slightly from t
   - Two-tier attribution: a short credit at the top, the full block by the table.
   - The same dropdowns shown in two sections were tested and are not a problem.
 
+- **D1-D4 (2026-11-13):** `.github/workflows/deploy.yml` (manual trigger only): checkout@v5, setup-python@v6 with `'3.14'` (the runner has 3.14.10), install requirements, show versions, fetch data, verify, install uv, export to `site/`, verify, upload `site/` as the Pages artifact, and a separate deploy job (`needs: build`; permissions `pages: write`, `id-token: write`; environment `github-pages`). The runner's pandas is 3.1.1 (inside the `~=3.0` pin) and the script ran on it without warnings. Live site: https://julierose.github.io/air-quality-analysis/
+- **Live-site bug fixed:** `pd.read_json(url)` failed in the browser with `BadGzipFile` (see gotchas). The notebook now fetches the text with `urllib` and parses it from `io.StringIO`; locally it reads the file with `open`. Verified in an incognito window: all markdown, charts, table, and KPI card appear. Cold load: largest paint at about 13-27 s.
+- **Observations:** a Node.js 20 deprecation annotation appears on the Pages upload (harmless); `.nojekyll` is not in the deployed artifact because upload-pages-artifact v4 drops dotfiles, and underscore-prefixed assets still load, so it doesn't matter.
+
 ### In progress
-- Nothing started. Next up: a final export and browser check of the whole notebook, then **D1**.
+- Nothing started. Next up: **D5** (schedule and push triggers).
 
 ## 5. Remaining work
 
@@ -145,24 +149,22 @@ Planned at ~7-9 blocks left; the "what stood out today" cell was dropped.
 ### Before Phase D: final check (~1 block)
 Export again and look at the whole site in the browser: sorting the date column across a month boundary, the table's download button (does it export formatted or raw values?), the "Data refreshed" time against `aqi.json`, load time, and the KPI card for all five cities.
 
-### Phase D: Automation and deploy (~6 blocks; least predictable)
-- D1: workflow skeleton, manual trigger only. Check the current GitHub docs for Pages deployment, and that the Python setup offers 3.14.
-- D2-D3: add the fetch step before the export step; the script creates `apps/public/data` itself.
-- D4: enable Pages and upload `site/`.
-- D5: add schedule and push triggers. Pick a run time that isn't near local midnight in any of the five cities (around 10:00 UTC), and verify the failure-email setting.
-- D6: handle the 60-day inactivity rule. *Decision needed:* keep-alive step vs reminder.
+### Phase D: Automation and deploy (D1-D4 done; ~3 blocks left)
+- **D5: add schedule and push triggers** next to `workflow_dispatch` (use the mapping form with colons). Pick a run time that isn't near local midnight in any of the five cities (around 10:00 UTC) and avoid the top of the hour, since GitHub says scheduled runs can be delayed at busy times (check the docs). Consider a `paths` filter on push so notes-only commits don't rebuild, and a `concurrency` group so runs don't overlap. Verify the failure-email setting (Settings → Notifications → Actions).
+- **D6: handle the 60-day inactivity rule.** *Decision needed:* keep-alive step vs calendar reminder.
+- Optional: bump `upload-pages-artifact` to v5 (clears the Node 20 warning; `include-hidden-files: true` restores dotfiles if ever needed) and `actions/checkout` to the version in GitHub's docs.
 
 ### Phase E: Polish (~2-3 blocks)
-- README: tick the JSON output and Notebook boxes now; replace the "notebook has no data to load" sentence; add the local-setup step "run `scripts/fetch_data.py` before opening the notebook"; add the rounding to the list of changes; update the status as milestones land; screenshots and live link.
+- README: tick the JSON output, Notebook, GitHub Actions, and Deployment boxes; replace the "under construction, not yet deployed" note and the "notebook has no data to load" sentence; add the local-setup step "run `scripts/fetch_data.py` before opening the notebook"; add the rounding to the list of changes; screenshots and live link.
 - Add the live site link to the repo's About box (Website field).
-- Update the "Related project" text in the `python_business_automation` README once the site is live.
-- Check the live site on a phone (the layout uses fixed-width charts).
-- Confirm `altair~=6.3` is in `requirements.txt`.
+- Update the "Related project" text in the `python_business_automation` README now that the site is live.
+- Check the live site on a phone (the layout uses fixed-width charts); confirm the table download exports what you want (formatted or raw values).
+- Optional: a one-line note near the top that the first load takes about 15 seconds.
 
 ### Open decisions
-DST handling before launch (accept, or convert with the IANA zone); keep-alive approach (D6).
+DST handling before launch (accept, or convert with the IANA zone); keep-alive approach (D6); whether to tighten the pandas pin, since the runner now installs 3.1.1 while local is 3.0.6.
 
-Estimate: ~9-10 blocks (~5 hours) remaining, padded for the pace so far.
+Estimate: ~5-6 blocks (~3 hours) remaining, padded for the pace so far.
 
 ## 6. Gotchas and lessons learned
 
@@ -210,3 +212,12 @@ Estimate: ~9-10 blocks (~5 hours) remaining, padded for the pace so far.
 - **Comparing `None` to a number raises `TypeError`:** handle the missing case first, before any `<` or `>`.
 - **Attribution:** show a short Open-Meteo credit near the top of the page, not only in a footer or beside the table. The full citations can stay in one place.
 - **Per-row `hstack(wrap=True)` wraps each row independently**, giving uneven rows (2, 1, 2, 1). For responsive layouts, put all charts in one wrapping `hstack`.
+- **Workflow YAML:** `steps` is a list (each step starts with `- `); a nested mapping starts on the next line (`with:` then an indented block, never `with: key: value`); `run: |` keeps line breaks (without the `|`, YAML folds lines into one command, so the second command silently never runs); a shell `|` is a pipe, not "and then"; quote `python-version: '3.14'`; `on: workflow_dispatch` (string form) and the mapping form both work.
+- **marimo `html-wasm` export needs `uv` on the PATH** even for notebooks with no local imports (it scans for local modules with ruff via `uv`). Locally it worked because `uv` was installed; the runner needs `pip install uv`.
+- **`pd.read_json(url)` fails in the browser on GitHub Pages** with `BadGzipFile: Not a gzipped file (b'[\n')`: pandas sees a `Content-Encoding: gzip` header, overrides compression to gzip (even over `compression=None`), but the browser already decompressed the body. Fix: fetch the text with `urllib.request.urlopen(...)` and parse from `io.StringIO`; use `open(...)` when the path is a local file. Python's local test server doesn't send that header, so local tests can't reproduce it.
+- **A failed cell on the hosted app hides everything downstream** (run mode shows the markdown but no charts, and the errors are only in the browser console). Open DevTools with Ctrl+Shift+I (or Fn+F12) and read the Console.
+- **Debugging deployed content:** the run summary's `github-pages` artifact is a zip containing `artifact.tar`; `tar -tf artifact.tar` lists exactly what was deployed. Use an incognito window for cold-load tests, since a normal window caches the Python runtime.
+- **upload-pages-artifact v4 excludes dotfiles** (e.g. `.nojekyll`); v5 adds `include-hidden-files`. The artifact-based Pages deploy doesn't run Jekyll, so underscore-prefixed files are served anyway.
+- **The Node.js 20 deprecation annotation** on the Pages upload comes from the action's internal dependency and is harmless.
+- **`marimo check --select MW` did not flag a WASM-incompatible import (tensorflow) in a test** and exited 0, so don't rely on it as a CI gate; the browser test is the real check.
+- **Optional editor aid:** GitHub's official Actions extension for VS Code (publisher GitHub) validates workflow YAML as you type.
