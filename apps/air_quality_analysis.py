@@ -16,14 +16,26 @@ def _():
     import pandas as pd
     import numpy as np
     import altair as alt
+    import io
+    import urllib.request
 
-    return alt, np, pd
+    return alt, np, pd, urllib
 
 
 @app.cell
-def _(mo, np, pd):
+def _(mo, np, pd, urllib):
     #data ingest and transformation
     aqi_path = str(mo.notebook_location()/"public"/"data"/"aqi.json")
+
+    if aqi_path.startswith("http"):
+        #in the browser: fetch the text ourselves so pandas doesn't misread the gzip header
+        with urllib.request.urlopen(aqi_path) as _response:
+            _aqi_text = _response.read().decode("utf-8")
+    else:
+        #running locally: plain file read
+        with open(aqi_path, encoding="utf-8") as _file:
+            _aqi_text = _file.read()
+
     air_df = pd.read_json(aqi_path, precise_float=True)
 
     air_df['current_time_utc'] = pd.to_datetime(air_df['current_time_utc'])
