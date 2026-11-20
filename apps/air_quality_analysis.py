@@ -126,14 +126,26 @@ def _(city_df, pd):
     us_aqi_mean_today = _round_or_none(_today_raw)
     us_aqi_mean_yesterday = _round_or_none(_yesterday_raw)
 
-    #run comparison only when both values exist
+    # Calculate change from yesterday
     if us_aqi_mean_today is None or us_aqi_mean_yesterday is None:
+        _aqi_change = None
         kpi_direction = None
-    elif us_aqi_mean_today > us_aqi_mean_yesterday:
-        kpi_direction = 'increase'
-    elif us_aqi_mean_today < us_aqi_mean_yesterday:
-        kpi_direction = 'decrease'
-    else: kpi_direction = None #equal values, no arrow
+        comparison_text = "Yesterday's average unavailable"
+
+    else:
+        _aqi_change = us_aqi_mean_today - us_aqi_mean_yesterday
+
+        if _aqi_change > 0:
+            kpi_direction = 'increase'
+            comparison_text = f"{_aqi_change} points higher than yesterday"
+
+        elif _aqi_change < 0:
+            kpi_direction = 'decrease'
+            comparison_text = f"{abs(_aqi_change)} points lower than yesterday"
+
+        else:
+            kpi_direction = None
+            comparison_text = "No change from yesterday"
 
     #AQI category
     _aqi_categories = [
@@ -153,7 +165,7 @@ def _(city_df, pd):
                 break
     return (
         aqi_category,
-        kpi_direction,
+        comparison_text,
         us_aqi_mean_today,
         us_aqi_mean_yesterday,
     )
@@ -162,19 +174,57 @@ def _(city_df, pd):
 @app.cell
 def _(
     aqi_category,
-    kpi_direction,
+    city_dropdown,
+    comparison_text,
     mo,
     us_aqi_mean_today,
     us_aqi_mean_yesterday,
 ):
     _yesterday_text = us_aqi_mean_yesterday if us_aqi_mean_yesterday is not None else "n/a"
 
-    aqi_card = mo.stat(value = us_aqi_mean_today if us_aqi_mean_today is not None else "n/a",
-                    label = "Today's Average US AQI",
-                    caption=f"{aqi_category} | yesterday's average: {_yesterday_text}",
-                    direction = kpi_direction,
-                    target_direction = 'decrease',
-                    bordered=True)
+    # Color based on AQI category
+    _aqi_colors = {
+        "Good": "#2E8B57",
+        "Moderate": "#D69E00",
+        "Unhealthy for Sensitive Groups": "#D97706",
+        "Unhealthy": "#DC4545",
+        "Very Unhealthy": "#8956A8",
+        "Hazardous": "#7E2635",
+    }
+
+    _aqi_color = _aqi_colors.get(aqi_category, "#666666")
+
+    aqi_card = mo.md(f"""
+    <div style="
+        border: 1px solid #d9d9d9;
+        border-radius: 10px;
+        padding: 16px 24px;
+        text-align: center;
+        background-color: #fafafa;
+    ">
+        <div style="font-size: 0.9em; color: #666;">
+            Today's Average AQI (based on available data) - {city_dropdown.value}
+        </div>
+        <div style="
+            font-size: 2.8em;
+            font-weight: 600;
+            line-height: 1.3;
+            color: {_aqi_color};
+        ">
+            {us_aqi_mean_today if us_aqi_mean_today is not None else "n/a"}
+        </div>
+        <div style="
+            font-size: 0.9em;
+            font-weight: 600;
+            color: {_aqi_color};
+        ">
+            {aqi_category}
+        </div>
+        <div style="font-size: 0.85em; color: #666; margin-top: 4px;">
+            {comparison_text}
+        </div>
+    </div>
+    """)
     #aqi_card
     return (aqi_card,)
 
@@ -580,8 +630,8 @@ def _(
         [mo.md(f"## Air Quality Snapshot: {city_dropdown.value}").style({"text-align": "center"}),
          mo.md("Local times displayed. Dashed lines represent forecast data").style({"text-align": "center","font-size":"0.9em","font-style":"italic"}),
         mo.hstack([city_dropdown,aqi_card], justify="center"),
-        mo.hstack([chart_pm2_5,chart_pm10,chart_CO]),
-        mo.hstack([chart_NO2,chart_SO2,chart_ozone])]
+        mo.hstack([chart_pm2_5,chart_pm10,chart_CO], justify="start",gap=0.5),
+        mo.hstack([chart_NO2,chart_SO2,chart_ozone], justify="start",gap=0.5)]
     )
     return
 
