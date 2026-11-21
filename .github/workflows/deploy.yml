@@ -1,8 +1,17 @@
 name: "Build and deploy"
-on: 
-    workflow_dispatch
-permissions: 
+on:
+    workflow_dispatch:
+    schedule:
+      - cron: '17 10 * * *'
+    push:
+      branches: [main]
+      paths: [apps/**, scripts/**, requirements.txt, .github/workflows/**]
+
+permissions:
     contents: read
+concurrency:
+  group: pages
+  cancel-in-progress: false
 jobs:
     build:
         runs-on: ubuntu-latest
