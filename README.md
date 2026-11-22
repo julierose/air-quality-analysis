@@ -1,32 +1,31 @@
 # Air Quality Analysis
 
-Automated air quality dashboard: a daily GitHub Action will pull Open-Meteo data for the 5 largest US cities. A [marimo](https://marimo.io/) data analysis and exploration notebook, hosted on GitHub Pages, will run entirely in the browser, illustrating geographic, temporal, and pollutant-based differences across the dataset.
-
-> This repo is a work in progress. Under construction, not yet deployed. See the [project notes](docs/PROJECT_NOTES.md) for details.
+Automated air quality dashboard: a daily GitHub Action pulls Open-Meteo data for the 5 largest US cities. A [marimo](https://marimo.io/) data analysis and exploration notebook, hosted on GitHub Pages, runs entirely in the browser, illustrating geographic, temporal, and pollutant-based differences across the dataset. [View live notebook](https://julierose.github.io/air-quality-analysis/). Note: the first load takes ~15 seconds while Python starts in your browser.
 
 ## How it works
 
-1. Data will be refreshed daily on a schedule using GitHub Actions.
-2. The `fetch_data.py` script will pull data from the Open-Meteo API and write it to a JSON file.
-3. The refreshed notebook will be exported and hosted publicly on GitHub Pages.
+1. Data are refreshed daily on a schedule using GitHub Actions.
+2. The `fetch_data.py` script pulls data from the Open-Meteo API and writes it to a JSON file.
+3. The refreshed notebook is exported and hosted publicly on GitHub Pages.
 
 ## Data notes
 
 The 5 largest US cities were identified using 2025 US Census Bureau data, and include New York, Los Angeles, Chicago, Houston, and Phoenix.
 
-Data will be pulled using a single latitude/longitude combination for each city. The values are model-based estimates, not readings from ground monitoring stations, and represent the grid cell (tens of kilometers) containing each city’s coordinates. Data transformations will adjust for local time zone differences and create a flag separating past from future model estimates.
+Data are pulled using a single latitude/longitude combination for each city. The values are model-based estimates, not readings from ground monitoring stations, and represent the grid cell (tens of kilometers) containing each city’s coordinates. Data transformations adjust for local time zone differences, create a flag separating past from future model estimates, and apply two-decimal rounding.
 
-Hourly air quality data for yesterday, today, and tomorrow in each city’s local time will be pulled during each run of the `fetch_data.py` script.
+Hourly air quality data for yesterday, today, and tomorrow in each city’s local time are pulled during each run of the `fetch_data.py` script.
 
-Air quality variables include PM10, PM2.5, carbon monoxide, nitrogen dioxide, sulfur dioxide, ozone, and the US Air Quality Index.
+Air quality variables include PM10, PM2.5, carbon monoxide, nitrogen dioxide, sulphur dioxide, ozone, and the US Air Quality Index.
 
 ## Status
 
 - [x] Data fetch and transformation
-- [ ] JSON output
-- [ ] Notebook
-- [ ] GitHub Actions
-- [ ] Deployment to GitHub Pages
+- [x] JSON output
+- [x] Notebook
+- [x] GitHub Actions
+- [x] Deployment to GitHub Pages
+- [x] Scheduled daily refresh
 
 ## Local setup
 
@@ -56,13 +55,16 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-4. Open the notebook in marimo's editor:
+4. Run:
+```python
+ scripts/fetch_data.py
+```
+
+5. Open the notebook in marimo's editor:
 
 ```powershell
 python -m marimo edit apps/air_quality_analysis.py
 ```
-
-The data pipeline is still under construction, so the notebook doesn't have data to load yet.
 
 ## Data sources and attribution
 
