@@ -309,11 +309,7 @@ def _(alt, city_multiselect, mo, multicity_df, pollutant_dropdown):
                 subtitleFontSize=12,
                 subtitleFontStyle='italic'),
             width = 800,
-            height = 400,
-            autosize = alt.AutoSizeParams(
-                type="fit",
-                contains="padding"
-            )
+            height = 400
         )
     )
     mo.vstack([city_multiselect,pollutant_dropdown,chart2], align="center")
@@ -634,8 +630,8 @@ def _(
         [mo.md(f"## Air Quality Snapshot: {city_dropdown.value}").style({"text-align": "center"}),
          mo.md("Local times displayed. Dashed lines represent forecast data").style({"text-align": "center","font-size":"0.9em","font-style":"italic"}),
         mo.hstack([city_dropdown,aqi_card], justify="center"),
-        mo.hstack([chart_pm2_5,chart_pm10,chart_CO], justify="start",gap=0.5),
-        mo.hstack([chart_NO2,chart_SO2,chart_ozone], justify="start",gap=0.5)]
+        mo.hstack([chart_pm2_5,chart_pm10,chart_CO], justify="center",gap=0.5),
+        mo.hstack([chart_NO2,chart_SO2,chart_ozone], justify="center",gap=0.5)]
     )
     return
 
