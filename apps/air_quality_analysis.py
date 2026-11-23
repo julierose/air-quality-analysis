@@ -308,9 +308,13 @@ def _(alt, city_multiselect, mo, multicity_df, pollutant_dropdown):
                 fontSize = 14,
                 subtitleFontSize=12,
                 subtitleFontStyle='italic'),
-            width = 350,
-            height = 400
+            width = 800,
+            height = 400,
+            autosize = alt.AutoSizeParams(
+                type="fit",
+                contains="padding"
             )
+        )
     )
     mo.vstack([city_multiselect,pollutant_dropdown,chart2], align="center")
     return
