@@ -308,7 +308,7 @@ def _(alt, city_multiselect, mo, multicity_df, pollutant_dropdown):
                 fontSize = 14,
                 subtitleFontSize=12,
                 subtitleFontStyle='italic'),
-            width = 800,
+            width = "container",
             height = 400
             )
     )
